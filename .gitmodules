@@ -1,0 +1,8 @@
+[submodule "libpng"]
+	path = src/png
+	url = https://git.code.sf.net/p/libpng-apng/code
+	branch = libpng16
+[submodule "zlib"]
+	path = src/zlib
+	url = https://github.com/madler/zlib.git
+	branch = master

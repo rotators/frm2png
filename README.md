@@ -21,13 +21,12 @@ Compilation from source:
 Dependencies:
 -------------
 
-- CMake >= 2.8
-- libpng >= 1.2 
+- CMake >= 3.7.2
 
 Build:
 
 ```bash
-mkdir build && cd build && cmake .. && make
+mkdir build && cd build && cmake ../src && make
 ```
 
 Usage:
@@ -38,3 +37,9 @@ Usage:
 ```
 
 Converted file will be saved as PATH_TO_FILE.png
+
+```bash
+./frm2png PATH_TO_FILE.frm apng
+```
+
+Converted file will be saved as PATH_TO_FILE_0.png, PATH_TO_FILE_1.png, ..., PATH_TO_FILE_5.png

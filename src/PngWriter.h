@@ -46,7 +46,8 @@ namespace frm2png
             static void writeCallback(png_structp png_struct, png_bytep data, png_size_t length);
             static void flushCallback(png_structp png_ptr);
 
-        protected:
+        //protected:
+        public:
             std::ofstream _stream;
             png_structp _png_struct;
             png_infop _png_info;
