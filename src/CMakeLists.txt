@@ -53,7 +53,7 @@ endfunction()
 set( ZLIB_LIBRARY zlibstatic )
 
 add_subdirectory( libfalltergeist-mini EXCLUDE_FROM_ALL )
-add_subdirectory( png                  EXCLUDE_FROM_ALL )
+add_subdirectory( libpng-apng          EXCLUDE_FROM_ALL )
 add_subdirectory( zlib                 EXCLUDE_FROM_ALL )
 
 
@@ -72,7 +72,7 @@ target_sources( frm2png
 		PngWriter.h
 )
 
-target_include_directories( frm2png PRIVATE libfalltergeist-mini png )
+target_include_directories( frm2png PRIVATE libfalltergeist-mini libpng-apng )
 target_link_libraries( frm2png PRIVATE png_static falltergeist-mini )
 
 frm2png_target( frm2png )
