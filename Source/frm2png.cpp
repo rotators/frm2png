@@ -70,7 +70,7 @@ T streamFile(const std::string& filename)
 
     stream.open(filename, std::ios_base::in | std::ios_base::binary);
     if (!stream.is_open())
-        throw Exception( "openStreamFiele() - Can't open input file: " + filename );
+        throw Exception( "openStreamFile() - Can't open input file: " + filename );
 
     T obj = T( stream );
 

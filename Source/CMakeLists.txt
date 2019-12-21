@@ -3,11 +3,12 @@ cmake_minimum_required( VERSION 3.7.2 FATAL_ERROR )
 project( frm2png LANGUAGES CXX )
 
 set( BUILD_SHARED_LIBS            OFF)
+set( CMAKE_BUILD_TYPE             "Release" )
 set( CMAKE_CONFIGURATION_TYPES    "Release" )
 set( CMAKE_CXX_STANDARD           11 )
 set( CMAKE_CXX_STANDARD_REQUIRED  YES )
 
-# prevent any dependencies from running any install-related stuff
+# prevent any dependencies from running any installation-related stuff
 set( CMAKE_SKIP_INSTALL_RULES     TRUE )
 macro( install )
 endmacro()
@@ -56,11 +57,14 @@ add_subdirectory( libfalltergeist-mini EXCLUDE_FROM_ALL )
 add_subdirectory( libpng-apng          EXCLUDE_FROM_ALL )
 add_subdirectory( zlib                 EXCLUDE_FROM_ALL )
 
+##
+## frm2png
+##
 
 add_executable( frm2png "" )
 target_sources( frm2png
 	PRIVATE
-		main.cpp
+		frm2png.cpp
 
 		ColorPal.cpp
 		ColorPal.h

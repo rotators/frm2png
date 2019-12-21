@@ -4,6 +4,7 @@
 #include "../Dat/Stream.h"
 #include "../Dat/Entry.h"
 #include "../Dat/File.h"
+
 #include "zlib.h"
 
 namespace Falltergeist

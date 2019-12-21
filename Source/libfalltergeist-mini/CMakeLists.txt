@@ -30,3 +30,5 @@ target_sources( falltergeist-mini
 		Format/Pal/Color.cpp
 		Format/Pal/File.cpp
 )
+
+target_link_libraries( falltergeist-mini PRIVATE zlibstatic )
