@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,21 +22,20 @@
  */
 
 // C++ standard includes
+#include <exception>
+#include <string>
 
 // frm2png includes
 #include "Exception.h"
 
 // Third party includes
 
-namespace frm2png
+Exception::Exception(const std::string& message)
 {
-    Exception::Exception(const std::string& message)
-    {
-        _message = message;
-    }
+    _message = message;
+}
 
-    const char* Exception::what() const throw()
-    {
-        return _message.c_str();
-    }
+const char* Exception::what() const throw()
+{
+    return _message.c_str();
 }

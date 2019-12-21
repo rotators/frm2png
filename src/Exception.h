@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -20,27 +21,23 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef FRM2PNG_EXCEPTION_H
-#define FRM2PNG_EXCEPTION_H
+#pragma once
 
 // C++ standard includes
+#include <exception>
 #include <string>
 
 // frm2png includes
 
 // Third party includes
 
-namespace frm2png
+class Exception : public std::exception
 {
-    class Exception : public std::exception
-    {
-        public:
-            Exception(const std::string& message);
+    public:
+        Exception(const std::string& message);
 
-            virtual const char* what() const throw();
+        virtual const char* what() const throw();
 
-        protected:
-            std::string _message;
-    };
-}
-#endif // FRM2PNG_EXCEPTION_H
+    protected:
+        std::string _message;
+};

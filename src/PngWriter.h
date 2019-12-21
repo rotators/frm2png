@@ -20,8 +20,7 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef FRM2PNG_PNGWRITER_H
-#define FRM2PNG_PNGWRITER_H
+#pragma once
 
 // C++ standard includes
 #include <fstream>
@@ -42,15 +41,17 @@ namespace frm2png
             PngWriter(const std::string& filename);
             ~PngWriter();
 
-            void write(const PngImage& image);
+        protected:
             static void writeCallback(png_structp png_struct, png_bytep data, png_size_t length);
             static void flushCallback(png_structp png_ptr);
 
-        //protected:
+        public:
+            void write(const PngImage& image);
+
+        // TODO restore 'protected' access modifier for libpng structs
         public:
             std::ofstream _stream;
             png_structp _png_struct;
             png_infop _png_info;
     };
 }
-#endif // FRM2PNG_PNGWRITER_H

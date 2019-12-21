@@ -21,13 +21,15 @@
  */
 
 // C++ standard includes
+#include <cstdint>
+
+// frm2png includes
 #include "Exception.h"
 #include "PngImage.h"
 #include "PngWriter.h"
 
-// frm2png includes
-
 // Third party includes
+#include <png.h>
 
 namespace frm2png
 {
@@ -78,7 +80,7 @@ namespace frm2png
 
     void PngWriter::write(const PngImage& image)
     {
-        // Write header info
+        // IHDR chunk
         png_set_IHDR(
             _png_struct,
             _png_info,
@@ -92,9 +94,10 @@ namespace frm2png
         );
         png_write_info(_png_struct, _png_info);
 
-        // Write data
+        // IDAT chunk
         png_write_image(_png_struct, image.rows());
-        // Write end
+
+        // IEND chunk
         png_write_end(_png_struct, NULL);
     }
 }

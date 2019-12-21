@@ -22,15 +22,21 @@
  */
 
 // C++ standard includes
+#include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
 // frm2png includes
+#include "ColorPal.h"
 #include "Exception.h"
-#include "FrmFalloutFile.h"
 #include "PngImage.h"
 #include "PngWriter.h"
+
+// falltergeist includes
+#include "Format/Dat/Stream.h"
+#include "Format/Frm/File.h"
 
 // Third party includes
 #include <png.h>
@@ -39,102 +45,175 @@ using namespace frm2png;
 
 void usage(const std::string& binaryName)
 {
-    std::cout << "FRM to PNG converter v0.1.4.1" << std::endl;
+    std::cout << "FRM to PNG converter v0.1.5r" << std::endl;
     std::cout << "Copyright (c) 2015-2018 Falltergeist developers" << std::endl;
     std::cout << "Copyright (c) 2019 Rotators" << std::endl;
+    std::cout << std::endl;
     std::cout << "Usage: " << binaryName << " <FRM filename>" << std::endl;
 }
 
-void frmInfo(FrmFalloutFile* frm)
+void frmInfo(const std::string& filename, Falltergeist::Format::Frm::File& frm)
 {
     std::cout << "=== FRM info ===" << std::endl;
-    std::cout << "Version: " << frm->version() << std::endl;
-    std::cout << "Frames per second: " << frm->framesPerSecond() << std::endl;
-    std::cout << "Action frame: " << frm->actionFrame() << std::endl;
-    std::cout << "Frames per direction: " << frm->framesPerDirection() << std::endl;
+    std::cout << "Filename ..............  " << filename << std::endl;
+    std::cout << "Version ................ " << frm.version() << std::endl;
+    std::cout << "Frames per second ...... " << frm.framesPerSecond() << std::endl;
+    std::cout << "Action frame ........... " << frm.actionFrame() << std::endl;
+    std::cout << "Directions ............. " << frm.directions().size() << std::endl;
+    std::cout << "Frames per direction ... " << frm.framesPerDirection() << std::endl;
+}
+
+template<typename T>
+T streamFile(const std::string& filename)
+{
+    std::ifstream stream;
+
+    stream.open(filename, std::ios_base::in | std::ios_base::binary);
+    if (!stream.is_open())
+        throw Exception( "openStreamFiele() - Can't open input file: " + filename );
+
+    T obj = T( stream );
+
+    return obj;
 }
 
 int main(int argc, char** argv)
 {
     if (argc < 2) {
         usage(argv[0]);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     std::string filename = argv[1];
     std::string basename = filename.substr(0, filename.find('.'));
+    std::replace(basename.begin(), basename.end(), '\\','/');
 
     bool apng = false;
     if (argc >= 3 && std::string(argv[2]) == "apng")
         apng = true;
 
     try {
-        FrmFalloutFile frm(filename);
+        auto frm = streamFile<Falltergeist::Format::Frm::File>(filename);
+        frmInfo(filename, frm);
 
-        frmInfo(&frm);
+        // TODO allow setting .pal file from command line
+        //auto pallete = streamFile<Falltergeist::Format::Frm::File>("color.pal"));
+        Falltergeist::Format::Pal::File pallete( ColorPal["default"] );
 
-        // find maximum width and height
-        unsigned maxWidth = frm.frames().at(0).at(0).width();
-        unsigned maxHeight = frm.frames().at(0).at(0).height();
-        for (unsigned i = 0; i != frm.frames().size(); ++i) {
-            for (unsigned j = 0; j != frm.frames().at(i).size(); ++j) {
-                auto frame = frm.frames().at(i).at(j);
-                if (frame.width() > maxWidth) maxWidth = frame.width();
-                if (frame.height() > maxHeight) maxHeight = frame.height();
-            }
-        }
+        // TODO decide what to do with Frm::File::rbga() and Frm::File::mask()
+        // they're most likely used by falltergeist graphics engine, and kinda pointless to keep here
+        //frm.rgba(&pallete);
+        //frm.mask(&pallete);
 
-        std::cout << "Max size: " << maxWidth << "x" << maxHeight << std::endl;
-        std::cout << "Directions: " << frm.frames().size() << std::endl;
+        // TODO? make rgbMultiplier configurable
+        static constexpr uint8_t rgbMultiplier = 4;
 
-        if (apng && frm.frames().size() == 1)
+        if (apng && frm.directions().size() == 1)
             apng = false;
 
         if (!apng)
         {
-            PngImage image(maxWidth*frm.framesPerDirection(), maxHeight*frm.frames().size());
+            // find maximum width and height
 
-            for (unsigned i = 0; i != frm.frames().size(); ++i) {
-                for (unsigned j = 0; j != frm.frames().at(i).size(); ++j) {
-                    auto frame = frm.frames().at(i).at(j);
-                    for (unsigned y = 0; y != frame.height(); ++y) {
-                        for (unsigned x = 0; x != frame.width(); ++x) {
-                            image.setPixel(maxWidth*j + x, maxHeight*i + y, frame.pixel(x, y));
-                        }
-                    }
+            uint16_t maxWidth = frm.directions().at(0).frames().at(0).width();
+            uint16_t maxHeight = frm.directions().at(0).frames().at(0).height();
+            for (const auto& dir : frm.directions()) {
+                for (const auto& frame : dir.frames()) {
+                    if (frame.width() > maxWidth) maxWidth = frame.width();
+                    if (frame.height() > maxHeight) maxHeight = frame.height();
                 }
             }
 
+            // draw .png
+
+            PngImage image(maxWidth*frm.framesPerDirection(), maxHeight*frm.directions().size());
+
+            size_t dirIdx = 0, frameIdx = 0;
+            for (const auto& dir : frm.directions()) {
+                for (const auto& frame : dir.frames()) {
+                    for (uint32_t y = 0, h = frame.height(); y < h; y++) {
+                        for (uint32_t x = 0, w = frame.width(); x < w; x++) {
+                            const Falltergeist::Format::Pal::Color* color = pallete.color(frame.index(x, y));
+                            image.setPixel(maxWidth * frameIdx + x, maxHeight * dirIdx + y, color->red() * rgbMultiplier, color->green()  * rgbMultiplier, color->blue()  * rgbMultiplier, color->alpha());
+                        }
+                    }
+                    frameIdx++;
+                }
+                dirIdx++;
+            }
 
             PngWriter writer(basename + ".png");
             writer.write(image);
         }
         else // experimental apng support
         {
-            for (unsigned d = 0; d != frm.frames().size(); ++d) {
-                std::vector<PngImage*> png;
+            uint32_t dirIdx = 0;
+            for (const auto& dir : frm.directions()) {
+                // TODO support acTL + fcTL + IDAT variant
+                static constexpr bool firstIsAnim = false;
 
-                for (unsigned f = 0; f != frm.frames().at(d).size(); ++f) {
-                    auto frame = frm.frames().at(d).at(f);
-                    PngImage* image = new PngImage(maxWidth, maxHeight);
+                // .frm frames iteration [1/3]; init conversion from .frm offsets to .png offsets
 
-                    for (unsigned y = 0; y != frame.height(); ++y) {
-                        for (unsigned x = 0; x != frame.width(); ++x) {
-                            image->setPixel(x, y, frame.pixel(x, y));
-                        }
+                uint32_t ihdrWidth = 0, ihdrHeight = 0;
+                int32_t spotX = 0, spotY = 0;
+                std::vector<std::pair<int32_t,int32_t>> offset;
+
+                uint32_t frameIdx = 0;
+                for (const auto& frame : dir.frames()) {
+                    if (!frameIdx) {
+                        // save first .frm frame spot position
+
+                        spotX = frame.width() / 2;
+                        spotY = frame.height();
+
+                        offset.emplace_back( 0, 0 );
+                    } else {
+                        // apply .frm offsets to cached spot
+
+                        spotX += frame.offsetX();
+                        spotY += frame.offsetY();
+
+                        // convert .frm spot to .png offset
+
+                        offset.emplace_back( spotX - frame.width() / 2, spotY - frame.height() );
+
+                        // shift position of first frame, if needed
+
+                        if (offset.back().first < 0)
+                            offset.front().first = std::max(offset.front().first, -offset.back().first);
+
+                        if (offset.back().second < 0)
+                            offset.front().second = std::max(offset.front().second, -offset.back().second);
                     }
-
-                    png.push_back(std::move(image));
+                    frameIdx++;
                 }
 
-                PngWriter writer(basename + "_" + std::to_string(d) + ".png");
+                // .frm frames iteration [2/3]; finish conversion from .frm offsets to .png offsets, find .png image size
 
-                // Write header info
+                frameIdx = 0;
+                for (auto& frameOffset : offset) {
+                    // apply first frame offset to other frames
+
+                    if (frameIdx) {
+                        frameOffset.first += offset.front().first;
+                        frameOffset.second += offset.front().second;
+                    }
+
+                    ihdrWidth = std::max<uint32_t>(ihdrWidth, frameOffset.first + dir.frames().at(frameIdx).width());
+                    ihdrHeight = std::max<uint32_t>(ihdrHeight, frameOffset.second + dir.frames().at(frameIdx).height());
+
+                    frameIdx++;
+                }
+
+                PngWriter writer(basename + "_" + std::to_string(dirIdx) + ".png");
+
+                // IHDR chunk
+
                 png_set_IHDR(
                     writer._png_struct,
                     writer._png_info,
-                    maxWidth,
-                    maxHeight,
+                    ihdrWidth,
+                    ihdrHeight,
                     8,
                     PNG_COLOR_TYPE_RGB_ALPHA,
                     PNG_INTERLACE_NONE,
@@ -142,37 +221,88 @@ int main(int argc, char** argv)
                     PNG_FILTER_TYPE_DEFAULT
                 );
 
-                png_set_acTL(writer._png_struct, writer._png_info, png.size(), 0);
+                // acTL chunk
+                png_set_acTL(writer._png_struct, writer._png_info, dir.frames().size() + (firstIsAnim ? 0 : 1), 0);
                 png_write_info(writer._png_struct, writer._png_info);
 
-                // write data
-                for (unsigned int idx = 0, idxMax = png.size(); idx < idxMax; idx++) {
-                    auto image = png.at(idx);
+                if (!firstIsAnim) {
+                    // if first image is not supposed to be part of animation, copy of first frame is added and moved to center
+                    // software supporting APNG will ignore it, anything else will use that as image to display
+
+                    png_set_first_frame_is_hidden(writer._png_struct, writer._png_info, true);
+
+                    auto& frame = dir.frames().front();
+                    PngImage defaultImage(ihdrWidth, ihdrHeight);
+
+                    // draw .png frame
+
+                    uint16_t pngX = ihdrWidth / 2 - frame.width() / 2;
+                    uint16_t pngY = ihdrHeight / 2 - frame.height() / 2;
+                    for (size_t x = 0, w = frame.width(); x < w; x++) {
+                        for (size_t y = 0, h = frame.height(); y < h; y++) {
+                            const Falltergeist::Format::Pal::Color* color = pallete.color(frame.index(x, y));
+                            defaultImage.setPixel(pngX + x, pngY + y, color->red() * rgbMultiplier, color->green() * rgbMultiplier, color->blue() * rgbMultiplier, color->alpha());
+                        }
+                    }
+
+                    // fcTL chunk - NOT SAVED, but function needs to be called either way
+
                     png_write_frame_head(writer._png_struct, writer._png_info,
-                        image->rows(),
-                        image->width(), image->height(),
-                        0, 0, // offsets
-                        0, frm.framesPerSecond(),
-                        PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
-                    png_write_image(writer._png_struct,image->rows());
+                        nullptr,               // rows (unused)
+                        ihdrWidth, ihdrHeight, // size (must match IHDR)
+                        0, 0,                  // offsets (must be 0s)
+                        0, 0,                  // delay
+                        0, 0 );                // dispose, blend
+
+                    // IDAT chunk
+
+                    png_write_image(writer._png_struct, defaultImage.rows());
                     png_write_frame_tail(writer._png_struct, writer._png_info);
                 }
 
-                // Write end
+                // .frm frames iteration [3/3]; draw .png frames
+                frameIdx = 0;
+                for (const auto& frame : dir.frames()) {
+
+                    // draw .png frame
+
+                    PngImage image(frame.width(), frame.height());
+                    for (size_t y = 0, h = frame.height(); y < h; y++) {
+                        for (size_t x = 0, w = frame.width(); x < w; x++) {
+                            const Falltergeist::Format::Pal::Color* color = pallete.color(frame.index(x, y));
+                            image.setPixel(x, y, color->red() * rgbMultiplier, color->green() * rgbMultiplier, color->blue() * rgbMultiplier, color->alpha());
+                        }
+                    }
+
+                    // fcTL chunk
+
+                    png_write_frame_head(writer._png_struct, writer._png_info,
+                        nullptr, // rows (unused)
+                        image.width(), image.height(),
+                        offset.at(frameIdx).first, offset.at(frameIdx).second,
+                        0, frm.framesPerSecond() / 2,
+                        PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
+
+                    // fdAT chunk
+
+                    png_write_image(writer._png_struct,image.rows());
+                    png_write_frame_tail(writer._png_struct, writer._png_info);
+
+                    frameIdx++;
+                }
+
+                // IEND chunk
+
                 png_write_end(writer._png_struct, NULL);
 
-                // Cleanup
-                for (PngImage* image : png) {
-                     delete(image);
-                }
-                png.clear();
+                dirIdx++;
             }
         }
 
     } catch(Exception& e) {
         std::cout << e.what() << std::endl;
-        return 1;
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

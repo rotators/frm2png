@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,7 +24,6 @@
 // C++ standard includes
 
 // frm2png includes
-#include "Color.h"
 #include "PngImage.h"
 
 // Third party includes
@@ -50,16 +50,16 @@ namespace frm2png
         delete [] _rows;
     }
 
-    void PngImage::setPixel(unsigned x, unsigned y, const Color& color)
+    void PngImage::setPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha /* = 255 */)
     {
         if (x >= _width || y >= _height) {
             return;
         }
 
-        _rows[y][x*4] = color.red();
-        _rows[y][x*4 + 1] = color.green();
-        _rows[y][x*4 + 2] = color.blue();
-        _rows[y][x*4 + 3] = color.alpha();
+        _rows[y][x*4] = r;
+        _rows[y][x*4 + 1] = g;
+        _rows[y][x*4 + 2] = b;
+        _rows[y][x*4 + 3] = alpha;
     }
 
     unsigned PngImage::width() const
@@ -72,7 +72,7 @@ namespace frm2png
         return _height;
     }
 
-    png_bytep* PngImage::rows() const
+    png_bytepp PngImage::rows() const
     {
         return _rows;
     }

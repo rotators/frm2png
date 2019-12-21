@@ -20,46 +20,20 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef FRM2PNG_FRMFALLOUTFILE_H
-#define FRM2PNG_FRMFALLOUTFILE_H
+#pragma once
 
 // C++ standard includes
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 // frm2png includes
-#include "FalloutFile.h"
-#include "FrmFrame.h"
+
+// falltergeist includes
+#include "Format/Pal/Color.h"
 
 // Third party includes
 
 namespace frm2png
 {
-    class FrmFalloutFile : public FalloutFile
-    {
-        public:
-            FrmFalloutFile(const std::string& filename);
-            virtual ~FrmFalloutFile();
-
-            std::map<uint8_t, std::vector<FrmFrame>>& frames();
-
-            uint16_t actionFrame();
-            uint16_t framesPerDirection();
-            uint16_t framesPerSecond();
-
-            uint32_t version();
-
-        protected:
-            uint8_t _colorModifier = 4;
-
-            uint16_t _actionFrame;
-            uint16_t _framesPerDirection;
-            uint16_t _framesPerSecond;
-
-            uint32_t _version;
-
-            // direction => frames
-            std::map<uint8_t, std::vector<FrmFrame>> _frames;
-    };
+    extern std::unordered_map<std::string,std::vector<Falltergeist::Format::Pal::Color>> ColorPal;
 }
-#endif // FRM2PNG_FRMFALLOUTFILE_H

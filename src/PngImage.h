@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -20,13 +21,15 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef FRM2PNG_PNGIMAGE_H
-#define FRM2PNG_PNGIMAGE_H
+#pragma once
 
 // C++ standard includes
 #include <cstdint>
 
 // frm2png includes
+
+// falltergeist includes
+#include "Format/Pal/Color.h"
 
 // Third party includes
 #include <png.h>
@@ -38,20 +41,19 @@ namespace frm2png
     class PngImage
     {
         public:
-            PngImage(unsigned width, unsigned height);
+            PngImage(uint32_t width, uint32_t height);
             ~PngImage();
 
-            void setPixel(unsigned x, unsigned y, const Color& color);
+            void setPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha = 255);
 
-            unsigned width() const;
-            unsigned height() const;
+            uint32_t width() const;
+            uint32_t height() const;
 
-            png_bytep* rows() const;
+            png_bytepp rows() const;
 
         protected:
-            unsigned _width;
-            unsigned _height;
-            png_bytep* _rows = 0;
+            uint32_t _width;
+            uint32_t _height;
+            png_bytepp _rows = 0;
     };
 }
-#endif // FRM2PNG_PNGIMAGE_H
