@@ -31,4 +31,5 @@ target_sources( falltergeist-mini
 		Format/Pal/File.cpp
 )
 
+target_include_directories( falltergeist-mini PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/zlib )
 target_link_libraries( falltergeist-mini PRIVATE zlibstatic )

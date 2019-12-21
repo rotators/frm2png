@@ -1,5 +1,5 @@
-#include <string.h> // for memcpy
 #include <algorithm>
+#include <cstdint>
 
 #include "../Dat/Stream.h"
 #include "../Dat/Entry.h"
