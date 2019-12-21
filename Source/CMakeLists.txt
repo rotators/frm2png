@@ -7,6 +7,7 @@ set( CMAKE_BUILD_TYPE             "Release" )
 set( CMAKE_CONFIGURATION_TYPES    "Release" )
 set( CMAKE_CXX_STANDARD           11 )
 set( CMAKE_CXX_STANDARD_REQUIRED  YES )
+#set( CMAKE_VERBOSE_MAKEFILE      ON )
 
 # prevent any dependencies from running any installation-related stuff
 set( CMAKE_SKIP_INSTALL_RULES     TRUE )
@@ -49,23 +50,31 @@ function( frm2png_target target )
 	endif()
 endfunction()
 
-# prevent libpng from searching for zlib, as it most likely will find one installed on system
-# this should be replaced with tweaking CMP0079 and using target_link_libraries() after switching to cmake 3.13 or newer
-set( ZLIB_LIBRARY zlibstatic )
+# zlib MUST be configured as first
+message( STATUS "Configuring zlib..." )
+add_subdirectory( zlib EXCLUDE_FROM_ALL )
+message( STATUS "Configuring zlib - ${ZLIB_INCLUDE_DIR}" )
+get_property(DIR_ZLIB_BINARY TARGET zlibstatic PROPERTY BINARY_DIR)
+get_property(DIR_ZLIB_SOURCE TARGET zlibstatic PROPERTY SOURCE_DIR)
 
+# libpng is waaay too stubborn on using installed zlib instead of source...
+message( STATUS "Configuring libpng-apng..." )
+option( PNG_BUILD_ZLIB "" ON )
+set( ZLIB_INCLUDE_DIR ${DIR_ZLIB_SOURCE} )
+add_subdirectory( libpng-apng EXCLUDE_FROM_ALL )
+target_include_directories( png_static PRIVATE ${DIR_ZLIB_BINARY} ${DIR_ZLIB_SOURCE} )
+
+message( STATUS "Configuring libfalltergeist-mini..." )
 add_subdirectory( libfalltergeist-mini EXCLUDE_FROM_ALL )
-add_subdirectory( libpng-apng          EXCLUDE_FROM_ALL )
-add_subdirectory( zlib                 EXCLUDE_FROM_ALL )
 
 ##
 ## frm2png
 ##
 
+message( STATUS "Configuring frm2png..." )
 add_executable( frm2png "" )
 target_sources( frm2png
 	PRIVATE
-		frm2png.cpp
-
 		ColorPal.cpp
 		ColorPal.h
 		Exception.cpp
@@ -74,6 +83,8 @@ target_sources( frm2png
 		PngImage.h
 		PngWriter.cpp
 		PngWriter.h
+
+		frm2png.cpp
 )
 
 target_include_directories( frm2png PRIVATE libfalltergeist-mini libpng-apng )

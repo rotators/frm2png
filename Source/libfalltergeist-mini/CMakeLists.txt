@@ -31,5 +31,9 @@ target_sources( falltergeist-mini
 		Format/Pal/File.cpp
 )
 
-target_include_directories( falltergeist-mini PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/zlib )
+if( NOT DIR_ZLIB_BINARY OR NOT DIR_ZLIB_SOURCE )
+	message( FATAL_ERROR "zlib directories not set" )
+endif()
+
+target_include_directories( falltergeist-mini PRIVATE ${DIR_ZLIB_BINARY} ${DIR_ZLIB_SOURCE} )
 target_link_libraries( falltergeist-mini PRIVATE zlibstatic )
