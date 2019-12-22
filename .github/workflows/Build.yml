@@ -5,6 +5,7 @@ on:
   paths:
   - '.github/workflows/Build.yml'
   - 'Source/**'
+ pull_request:
 
 jobs:
 
