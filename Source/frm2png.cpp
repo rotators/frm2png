@@ -115,8 +115,8 @@ int main(int argc, char** argv)
         {
             // find maximum width and height
 
-            uint16_t maxWidth = frm.directions().at(0).frames().at(0).width();
-            uint16_t maxHeight = frm.directions().at(0).frames().at(0).height();
+            uint16_t maxWidth = frm.directions().front().frames().front().width();
+            uint16_t maxHeight = frm.directions().front().frames().front().height();
             for (const auto& dir : frm.directions()) {
                 for (const auto& frame : dir.frames()) {
                     if (frame.width() > maxWidth) maxWidth = frame.width();
@@ -128,11 +128,12 @@ int main(int argc, char** argv)
 
             PngImage image(maxWidth*frm.framesPerDirection(), maxHeight*frm.directions().size());
 
-            size_t dirIdx = 0, frameIdx = 0;
+            uint8_t  dirIdx = 0;
+            uint16_t frameIdx = 0;
             for (const auto& dir : frm.directions()) {
                 for (const auto& frame : dir.frames()) {
-                    for (uint32_t y = 0, h = frame.height(); y < h; y++) {
-                        for (uint32_t x = 0, w = frame.width(); x < w; x++) {
+                    for (uint16_t y = 0, h = frame.height(); y < h; y++) {
+                        for (uint16_t x = 0, w = frame.width(); x < w; x++) {
                             const Falltergeist::Format::Pal::Color* color = pallete.color(frame.index(x, y));
                             image.setPixel(maxWidth * frameIdx + x, maxHeight * dirIdx + y, color->red() * rgbMultiplier, color->green()  * rgbMultiplier, color->blue()  * rgbMultiplier, color->alpha());
                         }
@@ -147,7 +148,7 @@ int main(int argc, char** argv)
         }
         else // experimental apng support
         {
-            uint32_t dirIdx = 0;
+            uint8_t dirIdx = 0;
             for (const auto& dir : frm.directions()) {
                 // TODO support acTL + fcTL + IDAT variant
                 static constexpr bool firstIsAnim = false;
@@ -158,7 +159,7 @@ int main(int argc, char** argv)
                 int32_t spotX = 0, spotY = 0;
                 std::vector<std::pair<int32_t,int32_t>> offset;
 
-                uint32_t frameIdx = 0;
+                uint16_t frameIdx = 0;
                 for (const auto& frame : dir.frames()) {
                     if (!frameIdx) {
                         // save first .frm frame spot position
@@ -238,8 +239,8 @@ int main(int argc, char** argv)
 
                     uint16_t pngX = ihdrWidth / 2 - frame.width() / 2;
                     uint16_t pngY = ihdrHeight / 2 - frame.height() / 2;
-                    for (size_t x = 0, w = frame.width(); x < w; x++) {
-                        for (size_t y = 0, h = frame.height(); y < h; y++) {
+                    for (uint16_t x = 0, w = frame.width(); x < w; x++) {
+                        for (uint16_t y = 0, h = frame.height(); y < h; y++) {
                             const Falltergeist::Format::Pal::Color* color = pallete.color(frame.index(x, y));
                             defaultImage.setPixel(pngX + x, pngY + y, color->red() * rgbMultiplier, color->green() * rgbMultiplier, color->blue() * rgbMultiplier, color->alpha());
                         }
@@ -267,8 +268,8 @@ int main(int argc, char** argv)
                     // draw .png frame
 
                     PngImage image(frame.width(), frame.height());
-                    for (size_t y = 0, h = frame.height(); y < h; y++) {
-                        for (size_t x = 0, w = frame.width(); x < w; x++) {
+                    for (uint16_t y = 0, h = frame.height(); y < h; y++) {
+                        for (uint16_t x = 0, w = frame.width(); x < w; x++) {
                             const Falltergeist::Format::Pal::Color* color = pallete.color(frame.index(x, y));
                             image.setPixel(x, y, color->red() * rgbMultiplier, color->green() * rgbMultiplier, color->blue() * rgbMultiplier, color->alpha());
                         }

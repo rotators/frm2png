@@ -25,6 +25,10 @@ Compilation
 Dependencies
 ------------
 - CMake >= 3.7.2
+- libpng-apng = 1.6.x
+  included as git submodule
+- zlib >= 1.2.11
+  included as git submodule
 
 Build
 ```bash
@@ -35,5 +39,5 @@ mkdir Build
 cd Build
 
 cmake ../Source
-cmake --build .
+cmake --build . --config Release
 ```

@@ -122,7 +122,7 @@ target_sources( frm2png
 		frm2png.cpp
 )
 
-target_include_directories( frm2png PRIVATE "${DIR_LIBPNG_BINARY}" libfalltergeist-mini libpng-apng  )
+target_include_directories( frm2png PRIVATE "${DIR_LIBPNG_BINARY}" libfalltergeist-mini libpng-apng )
 target_link_libraries( frm2png PRIVATE png_static falltergeist-mini )
 
 frm2png_target( frm2png )

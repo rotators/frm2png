@@ -1,0 +1,42 @@
+name: Build
+
+on:
+ push:
+  paths:
+  - '.github/workflows/Build.yml'
+  - 'Source/**'
+
+jobs:
+
+ frm2png:
+  name:    frm2png (${{ matrix.cfg.name }} ${{ matrix.cfg.platform }})
+  runs-on: ${{ matrix.cfg.os }}
+  strategy:
+   fail-fast: false
+   matrix:
+    cfg:
+    - { os: ubuntu-latest,  name: Linux,   platform: x64, frm2png: Build/frm2png }
+    - { os: windows-latest, name: Windows, platform: x64, frm2png: Build/Release/frm2png.exe }
+
+  steps:
+
+  - name: Clone
+    uses: actions/checkout@v2
+
+  - name: Clone submodules
+    run:  git submodule update --init
+
+  - name:  Build
+    run:   |
+           :
+           mkdir Build && cd Build
+           cmake ../Source
+           cmake --build . --config Release
+    shell: bash
+
+  - name:  Build check
+    run:   |
+           :
+           file ${{ matrix.cfg.frm2png }}
+           ldd  ${{ matrix.cfg.frm2png }}
+    shell: bash

@@ -33,6 +33,8 @@
 
 // Third party includes
 
+// clang-format off
+
 namespace frm2png
 {
     std::unordered_map<std::string,std::vector<Falltergeist::Format::Pal::Color>> ColorPal =
