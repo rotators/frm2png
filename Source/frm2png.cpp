@@ -129,13 +129,16 @@ int main(int argc, char** argv)
             PngImage image(maxWidth*frm.framesPerDirection(), maxHeight*frm.directions().size());
 
             uint8_t  dirIdx = 0;
-            uint16_t frameIdx = 0;
             for (const auto& dir : frm.directions()) {
+                uint16_t frameIdx = 0;
                 for (const auto& frame : dir.frames()) {
+                    const uint32_t pngX = maxWidth * frameIdx;
+                    const uint32_t pngY = maxHeight * dirIdx;
+
                     for (uint16_t y = 0, h = frame.height(); y < h; y++) {
                         for (uint16_t x = 0, w = frame.width(); x < w; x++) {
                             const Falltergeist::Format::Pal::Color* color = pallete.color(frame.index(x, y));
-                            image.setPixel(maxWidth * frameIdx + x, maxHeight * dirIdx + y, color->red() * rgbMultiplier, color->green()  * rgbMultiplier, color->blue()  * rgbMultiplier, color->alpha());
+                            image.setPixel(pngX + x, pngY + y, color->red() * rgbMultiplier, color->green()  * rgbMultiplier, color->blue()  * rgbMultiplier, color->alpha());
                         }
                     }
                     frameIdx++;
@@ -143,8 +146,8 @@ int main(int argc, char** argv)
                 dirIdx++;
             }
 
-            PngWriter writer(basename + ".png");
-            writer.write(image);
+            PngWriter png(basename + ".png");
+            png.write(image);
         }
         else // experimental apng support
         {
@@ -206,31 +209,13 @@ int main(int argc, char** argv)
                     frameIdx++;
                 }
 
-                PngWriter writer(basename + "_" + std::to_string(dirIdx) + ".png");
+                PngWriter png(basename + "_" + std::to_string(dirIdx) + ".png");
 
-                // IHDR chunk
-
-                png_set_IHDR(
-                    writer._png_struct,
-                    writer._png_info,
-                    ihdrWidth,
-                    ihdrHeight,
-                    8,
-                    PNG_COLOR_TYPE_RGB_ALPHA,
-                    PNG_INTERLACE_NONE,
-                    PNG_COMPRESSION_TYPE_DEFAULT,
-                    PNG_FILTER_TYPE_DEFAULT
-                );
-
-                // acTL chunk
-                png_set_acTL(writer._png_struct, writer._png_info, dir.frames().size() + (firstIsAnim ? 0 : 1), 0);
-                png_write_info(writer._png_struct, writer._png_info);
+                png.writeAnimHeader( ihdrWidth, ihdrHeight, dir.frames().size() + (firstIsAnim ? 0 : 1), 0, !firstIsAnim );
 
                 if (!firstIsAnim) {
                     // if first image is not supposed to be part of animation, copy of first frame is added and moved to center
                     // software supporting APNG will ignore it, anything else will use that as image to display
-
-                    png_set_first_frame_is_hidden(writer._png_struct, writer._png_info, true);
 
                     auto& frame = dir.frames().front();
                     PngImage defaultImage(ihdrWidth, ihdrHeight);
@@ -246,19 +231,7 @@ int main(int argc, char** argv)
                         }
                     }
 
-                    // fcTL chunk - NOT SAVED, but function needs to be called either way
-
-                    png_write_frame_head(writer._png_struct, writer._png_info,
-                        nullptr,               // rows (unused)
-                        ihdrWidth, ihdrHeight, // size (must match IHDR)
-                        0, 0,                  // offsets (must be 0s)
-                        0, 0,                  // delay
-                        0, 0 );                // dispose, blend
-
-                    // IDAT chunk
-
-                    png_write_image(writer._png_struct, defaultImage.rows());
-                    png_write_frame_tail(writer._png_struct, writer._png_info);
+                    png.writeAnimFrame( defaultImage, 0, 0, 0, 0, 0, 0 );
                 }
 
                 // .frm frames iteration [3/3]; draw .png frames
@@ -275,27 +248,12 @@ int main(int argc, char** argv)
                         }
                     }
 
-                    // fcTL chunk
-
-                    png_write_frame_head(writer._png_struct, writer._png_info,
-                        nullptr, // rows (unused)
-                        image.width(), image.height(),
-                        offset.at(frameIdx).first, offset.at(frameIdx).second,
-                        0, frm.framesPerSecond() / 2,
-                        PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
-
-                    // fdAT chunk
-
-                    png_write_image(writer._png_struct,image.rows());
-                    png_write_frame_tail(writer._png_struct, writer._png_info);
+                    png.writeAnimFrame( image, offset.at(frameIdx).first, offset.at(frameIdx).second, 0, frm.framesPerSecond() / 2, PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
 
                     frameIdx++;
                 }
 
-                // IEND chunk
-
-                png_write_end(writer._png_struct, NULL);
-
+                png.writeAnimEnd();
                 dirIdx++;
             }
         }

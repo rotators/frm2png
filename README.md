@@ -13,7 +13,7 @@ frm2png PATH_TO_FILE.frm
 Converted file will be saved as PATH_TO_FILE.png
 
 ```bash
-./frm2png PATH_TO_FILE.frm apng
+frm2png PATH_TO_FILE.frm apng
 ```
 
 Converted file will be saved as PATH_TO_FILE_0.png, PATH_TO_FILE_1.png, ..., PATH_TO_FILE_5.png
@@ -25,10 +25,8 @@ Compilation
 Dependencies
 ------------
 - CMake >= 3.7.2
-- libpng-apng = 1.6.x
-  included as git submodule
-- zlib >= 1.2.11
-  included as git submodule
+- libpng-apng = 1.6.37 (included as git submodule)
+- zlib = 1.2.11 (included as git submodule)
 
 Build
 ```bash

@@ -29,15 +29,12 @@
 // frm2png includes
 
 // falltergeist includes
-#include "Format/Pal/Color.h"
 
 // Third party includes
 #include <png.h>
 
 namespace frm2png
 {
-    class Color;
-
     class PngImage
     {
         public:

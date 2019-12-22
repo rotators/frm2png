@@ -23,20 +23,25 @@
 #pragma once
 
 // C++ standard includes
+#include <cstdint>
 #include <fstream>
 #include <string>
 
 // frm2png includes
+#include "PngImage.h"
 
 // Third party includes
 #include <png.h>
 
 namespace frm2png
 {
-    class PngImage;
-
     class PngWriter
     {
+        protected:
+            std::ofstream _stream;
+            png_structp _png_write;
+            png_infop _png_info;
+
         public:
             PngWriter(const std::string& filename);
             ~PngWriter();
@@ -48,10 +53,8 @@ namespace frm2png
         public:
             void write(const PngImage& image);
 
-        // TODO restore 'protected' access modifier for libpng structs
-        public:
-            std::ofstream _stream;
-            png_structp _png_struct;
-            png_infop _png_info;
+            void writeAnimHeader( uint32_t width, uint32_t height, uint32_t frames, uint32_t loop, bool preview );
+            void writeAnimFrame( const PngImage& image, uint32_t offsetX, uint32_t offsetY, uint16_t delayNum, uint16_t delayDen, uint8_t dispose, uint8_t blend );
+            void writeAnimEnd();
     };
 }

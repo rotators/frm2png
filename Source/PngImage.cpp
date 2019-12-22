@@ -22,29 +22,34 @@
  */
 
 // C++ standard includes
+#include <cstdint>
+#include <string>
 
 // frm2png includes
+#include "Exception.h"
 #include "PngImage.h"
 
 // Third party includes
 
 namespace frm2png
 {
-    PngImage::PngImage(unsigned width, unsigned height)
+    PngImage::PngImage( uint32_t width, uint32_t height )
     {
         _width = width;
         _height = height;
 
         _rows = new png_bytep[_height]();
 
-        for(unsigned y = 0; y != _height; ++y) {
+        for( uint32_t y = 0; y != _height; ++y)
+        {
             _rows[y] = new png_byte[_width*4]();
         }
     }
 
     PngImage::~PngImage()
     {
-        for(unsigned y = 0; y != _height; ++y) {
+        for( uint32_t y = 0; y != _height; ++y )
+        {
             delete [] _rows[y];
         }
         delete [] _rows;
@@ -52,9 +57,8 @@ namespace frm2png
 
     void PngImage::setPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha /* = 255 */)
     {
-        if (x >= _width || y >= _height) {
-            return;
-        }
+        if( x > _width || y > _height )
+            throw Exception( "PngImage::setPixel() - Invalid position " + std::to_string(x) + "," + std::to_string(y) );
 
         _rows[y][x*4] = r;
         _rows[y][x*4 + 1] = g;
@@ -62,12 +66,12 @@ namespace frm2png
         _rows[y][x*4 + 3] = alpha;
     }
 
-    unsigned PngImage::width() const
+    uint32_t PngImage::width() const
     {
         return _width;
     }
 
-    unsigned PngImage::height() const
+    uint32_t PngImage::height() const
     {
         return _height;
     }
