@@ -16,7 +16,10 @@ endmacro()
 
 # strict compilation
 function( frm2png_target target )
-	if( UNIX )
+	if( MSVC )
+		set_property( TARGET ${target} APPEND PROPERTY COMPILE_FLAGS /MT )
+		set_property( TARGET ${target} APPEND PROPERTY LINK_FLAGS /OPT:REF )
+	elseif( UNIX )
 		set( CMAKE_BUILD_TYPE RelWithDebInfo )
 
 		include( CheckCXXCompilerFlag )
@@ -38,6 +41,12 @@ function( frm2png_target target )
 			target_compile_options( ${target} PRIVATE -Wpedantic )
 		endif()
 
+		#check_cxx_compiler_flag( -Wconversion COMPILER_FLAG_WCONVERSION )
+
+		#if( COMPILER_FLAG_WCONVERSION )
+		#	target_compile_options( ${target} PRIVATE -Wconversion )
+		#endif()
+
 		check_cxx_compiler_flag( -static-libgcc    COMPILER_FLAG_STATIC_LIBGCC )
 		check_cxx_compiler_flag( -static-libstdc++ COMPILER_FLAG_STATIC_LIBSTDCPP )
 
@@ -50,22 +59,48 @@ function( frm2png_target target )
 	endif()
 endfunction()
 
-# zlib MUST be configured as first
+function( other_target target )
+	if( MSVC )
+		set_property( TARGET ${target} APPEND PROPERTY COMPILE_FLAGS /MT )
+		set_property( TARGET ${target} APPEND PROPERTY LINK_FLAGS /OPT:REF )
+	endif()
+endfunction()
+
+##
+## zlib
+##
+
 message( STATUS "Configuring zlib..." )
 add_subdirectory( zlib EXCLUDE_FROM_ALL )
-message( STATUS "Configuring zlib - ${ZLIB_INCLUDE_DIR}" )
 get_property(DIR_ZLIB_BINARY TARGET zlibstatic PROPERTY BINARY_DIR)
 get_property(DIR_ZLIB_SOURCE TARGET zlibstatic PROPERTY SOURCE_DIR)
+other_target( zlibstatic )
 
-# libpng is waaay too stubborn on using installed zlib instead of source...
+set( ZLIB_INCLUDE_DIR "${DIR_ZLIB_BINARY}" )
+add_custom_command( OUTPUT "${DIR_ZLIB_BINARY}/zlib.h" COMMAND ${CMAKE_COMMAND} -E copy_if_different "${DIR_ZLIB_SOURCE}/zlib.h" "${DIR_ZLIB_BINARY}/zlib.h" )
+add_custom_target( zlib_h ALL DEPENDS "${DIR_ZLIB_BINARY}/zlib.h" )
+add_dependencies( zlib_h zlibstatic )
+
+##
+## libpng-apng
+##
+
 message( STATUS "Configuring libpng-apng..." )
 option( PNG_BUILD_ZLIB "" ON )
-set( ZLIB_INCLUDE_DIR ${DIR_ZLIB_SOURCE} )
 add_subdirectory( libpng-apng EXCLUDE_FROM_ALL )
-target_include_directories( png_static PRIVATE ${DIR_ZLIB_BINARY} ${DIR_ZLIB_SOURCE} )
+get_property(DIR_LIBPNG_BINARY TARGET png_static PROPERTY BINARY_DIR)
+other_target( png_static )
+
+target_include_directories( png_static PRIVATE "${ZLIB_INCLUDE_DIR}" )
+add_dependencies( genfiles zlib_h )
+
+##
+## libfalltergeist-mini
+##
 
 message( STATUS "Configuring libfalltergeist-mini..." )
 add_subdirectory( libfalltergeist-mini EXCLUDE_FROM_ALL )
+add_dependencies( falltergeist-mini zlib_h )
 
 ##
 ## frm2png
@@ -87,7 +122,7 @@ target_sources( frm2png
 		frm2png.cpp
 )
 
-target_include_directories( frm2png PRIVATE libfalltergeist-mini libpng-apng )
+target_include_directories( frm2png PRIVATE "${DIR_LIBPNG_BINARY}" libfalltergeist-mini libpng-apng  )
 target_link_libraries( frm2png PRIVATE png_static falltergeist-mini )
 
 frm2png_target( frm2png )

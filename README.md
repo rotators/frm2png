@@ -31,9 +31,9 @@ Build
 git clone https://github.com/rotators/frm2png.git
 git submodule update --init
 
-mkdir build
-cd build
+mkdir Build
+cd Build
 
-cmake ../src
+cmake ../Source
 cmake --build .
 ```
