@@ -6,3 +6,7 @@
 	path = Source/zlib
 	url = https://github.com/madler/zlib.git
 	branch = master
+[submodule "clipp"]
+	path = Source/Source/clipp
+	url = https://github.com/muellan/clipp.git
+	branch = master

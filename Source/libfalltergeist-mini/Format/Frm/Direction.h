@@ -29,8 +29,8 @@ namespace Falltergeist
                     uint32_t dataOffset() const;
                     void setDataOffset(uint32_t value);
 
-                    uint16_t width() const;
-                    uint16_t height() const;
+                    uint16_t maxFrameWidth() const;
+                    uint16_t maxFrameHeight() const;
 
                     std::vector<Frame>& frames();
                     const std::vector<Frame>& frames() const;

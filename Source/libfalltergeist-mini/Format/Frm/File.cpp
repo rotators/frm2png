@@ -91,82 +91,26 @@ namespace Falltergeist
                 return _directions;
             }
 
-            uint16_t File::width() const
+            uint16_t File::maxFrameWidth() const
             {
-                return std::max_element(_directions.begin(), _directions.end(), [](const Direction& a, const Direction& b)
+                uint16_t width = 0;
+                std::for_each( _directions.begin(), _directions.end(), [&width]( const Direction& dir )
                 {
-                    return a.width() < b.width();
-                })->width();
+                    width = std::max( width, dir.maxFrameWidth() );
+                });
+
+                return width;
             }
 
-            uint16_t File::height() const
+            uint16_t File::maxFrameHeight() const
             {
-                return std::max_element(_directions.begin(), _directions.end(), [](const Direction& a, const Direction& b)
+                uint16_t height = 0;
+                std::for_each( _directions.begin(), _directions.end(), [&height]( const Direction& dir )
                 {
-                    return a.height() < b.height();
-                })->width();
-            }
+                    height = std::max( height, dir.maxFrameHeight() );
+                });
 
-            uint32_t* File::rgba(Pal::File* palFile)
-            {
-                // TODO: this looks like a getter, which in fact creates _rgba.
-                // Moreover, the content of _rgba depends on the specific palFile that was provided the first time
-                // This is clearly bad semantics
-                if (!_rgba.empty()) return _rgba.data();
-
-                _rgba.resize(width()*height());
-
-                uint16_t w = width();
-
-                size_t positionY = 1;
-                for (auto& direction : _directions)
-                {
-                    size_t positionX = 1;
-                    for (auto& frame : direction.frames())
-                    {
-                        // TODO: more efficient way to generate texture?
-                        for (uint16_t y = 0; y != frame.height(); ++y)
-                        {
-                            for (uint16_t x = 0; x != frame.width(); ++x)
-                            {
-                                _rgba[((y + positionY)*w) + x + positionX] = *palFile->color(frame.index(x, y));
-                            }
-                        }
-                        positionX += frame.width() + 2;
-                    }
-                    positionY += direction.height();
-                }
-                return _rgba.data();
-            }
-
-            std::vector<bool>& File::mask(Pal::File* palFile)
-            {
-                if (!_mask.empty()) return _mask;
-
-                uint16_t w = width();
-                uint16_t h = height();
-
-                _mask.resize(w*h, true);
-
-                unsigned positionY = 1;
-                for (auto& direction : _directions)
-                {
-                    unsigned positionX = 1;
-                    for (auto& frame : direction.frames())
-                    {
-                        // TODO: optimize
-                        for (unsigned y = 0; y != frame.height(); ++y)
-                        {
-                            for (unsigned x = 0; x != frame.width(); ++x)
-                            {
-                                _mask[((y + positionY)*w) + x + positionX] = (palFile->color(frame.index(x, y))->alpha() > 0);
-                            }
-                        }
-                        positionX += frame.width() + 2;
-                    }
-                    positionY += direction.height();
-                }
-                return _mask;
+                return height;
             }
 
             int16_t File::offsetX(unsigned int direction, unsigned int frame) const

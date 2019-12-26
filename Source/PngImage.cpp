@@ -23,10 +23,10 @@
 
 // C++ standard includes
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 
 // frm2png includes
-#include "Exception.h"
 #include "PngImage.h"
 
 // Third party includes
@@ -35,6 +35,9 @@ namespace frm2png
 {
     PngImage::PngImage( uint32_t width, uint32_t height )
     {
+        if( !width && !height )
+            throw std::runtime_error( "PngImage::PngImage() - Invalid size" );
+
         _width = width;
         _height = height;
 
@@ -58,7 +61,7 @@ namespace frm2png
     void PngImage::setPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha /* = 255 */)
     {
         if( x > _width || y > _height )
-            throw Exception( "PngImage::setPixel() - Invalid position " + std::to_string(x) + "," + std::to_string(y) );
+            throw std::runtime_error( "PngImage::setPixel() - Invalid position " + std::to_string(x) + "," + std::to_string(y) );
 
         _rows[y][x*4] = r;
         _rows[y][x*4 + 1] = g;

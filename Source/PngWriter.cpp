@@ -24,10 +24,10 @@
 // C++ standard includes
 #include <cstdint>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
 // frm2png includes
-#include "Exception.h"
 #include "PngImage.h"
 #include "PngWriter.h"
 
@@ -40,21 +40,21 @@ namespace frm2png
     {
         _stream.open(filename, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
         if( !_stream.is_open() )
-            throw Exception("PngWriter::PngWriter() - Can't open output file:" + filename);
+            throw std::runtime_error("PngWriter::PngWriter() - Can't open output file:" + filename);
 
         // Initialize write structure
         _png_write = png_create_write_struct( PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr );
         if (_png_write == nullptr)
-            throw Exception("PngWriter::PngWriter() - Could not allocate write struct");
+            throw std::runtime_error("PngWriter::PngWriter() - Could not allocate write struct");
 
         // Initialize info structure
         _png_info = png_create_info_struct(_png_write);
         if (_png_info == nullptr)
-            throw Exception("PngWriter::PngWriter() - Could not allocate info struct");
+            throw std::runtime_error("PngWriter::PngWriter() - Could not allocate info struct");
 
         // Setup Exception handling
         if (setjmp(png_jmpbuf(_png_write)))
-            throw Exception("PngWriter::PngWriter() - Error during png creation");
+            throw std::runtime_error("PngWriter::PngWriter() - Error during png creation");
 
         png_set_write_fn(_png_write, &_stream, PngWriter::writeCallback, PngWriter::flushCallback);
     }
@@ -111,7 +111,7 @@ namespace frm2png
 
         // acTL chunk
         if( frames < 2 )
-            throw Exception( "PngWriter::writeAnimHeader() - Invalid number of frames (" + std::to_string( frames ) + " < 2)" );
+            throw std::runtime_error( "PngWriter::writeAnimHeader() - Invalid number of frames (" + std::to_string( frames ) + " < 2)" );
 
         png_set_acTL( _png_write, _png_info, frames, loop );
         png_write_info( _png_write, _png_info );

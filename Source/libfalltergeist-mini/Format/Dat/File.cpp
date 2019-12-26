@@ -1,7 +1,6 @@
-#include "../Dat/File.h"
+#include <stdexcept>
 
-// frm2png
-#include "../../../Exception.h"
+#include "../Dat/File.h"
 
 namespace Falltergeist
 {
@@ -35,7 +34,7 @@ namespace Falltergeist
             {
                 _stream.open(filename(), std::ios_base::binary);
                 if (!_stream.is_open())
-                    throw Exception("File::_initialize() - can't open stream: " + filename());
+                    throw std::runtime_error("Format::Dat::File::_initialize() - can't open stream: " + filename());
 
                 unsigned int FileSize;
                 unsigned int filesTreeSize;
@@ -45,7 +44,7 @@ namespace Falltergeist
                 setPosition(size() - 4);
                 *this >> FileSize;
                 if (FileSize != size())
-                    throw Exception("File::items() - wrong file size");
+                    throw std::runtime_error("Format::Dat::File::items() - wrong file size");
 
                 // reading size of files tree
                 setPosition(size() - 8);

@@ -5,7 +5,7 @@ project( frm2png LANGUAGES CXX )
 set( BUILD_SHARED_LIBS            OFF)
 set( CMAKE_BUILD_TYPE             "Release" )
 set( CMAKE_CONFIGURATION_TYPES    "Release" )
-set( CMAKE_CXX_STANDARD           11 )
+set( CMAKE_CXX_STANDARD           14 )
 set( CMAKE_CXX_STANDARD_REQUIRED  YES )
 #set( CMAKE_VERBOSE_MAKEFILE      ON )
 
@@ -14,47 +14,17 @@ set( CMAKE_SKIP_INSTALL_RULES     TRUE )
 macro( install )
 endmacro()
 
-# strict compilation
-function( frm2png_target target )
-	if( MSVC )
-		set_property( TARGET ${target} APPEND PROPERTY COMPILE_FLAGS /MT )
-		set_property( TARGET ${target} APPEND PROPERTY LINK_FLAGS /OPT:REF )
-	elseif( UNIX )
-		set( CMAKE_BUILD_TYPE RelWithDebInfo )
+function( compiler_flag type target flag var )
+	include( CheckCXXCompilerFlag )
+	check_cxx_compiler_flag( ${flag} ${var} )
 
-		include( CheckCXXCompilerFlag )
-		check_cxx_compiler_flag( -Wall      COMPILER_FLAG_WALL )
-		check_cxx_compiler_flag( -Werror    COMPILER_FLAG_WERROR )
-		check_cxx_compiler_flag( -Wextra    COMPILER_FLAG_WEXTRA )
-		check_cxx_compiler_flag( -Wpedantic COMPILER_FLAG_WPEDANTIC )
-
-		if( COMPILER_FLAG_WALL )
-			target_compile_options( ${target} PRIVATE -Wall )
-		endif()
-		if( COMPILER_FLAG_WERROR )
-			target_compile_options( ${target} PRIVATE -Werror )
-		endif()
-		if( COMPILER_FLAG_WEXTRA )
-			target_compile_options( ${target} PRIVATE -Wextra )
-		endif()
-		if( COMPILER_FLAG_WPEDANTIC )
-			target_compile_options( ${target} PRIVATE -Wpedantic )
-		endif()
-
-		#check_cxx_compiler_flag( -Wconversion COMPILER_FLAG_WCONVERSION )
-
-		#if( COMPILER_FLAG_WCONVERSION )
-		#	target_compile_options( ${target} PRIVATE -Wconversion )
-		#endif()
-
-		check_cxx_compiler_flag( -static-libgcc    COMPILER_FLAG_STATIC_LIBGCC )
-		check_cxx_compiler_flag( -static-libstdc++ COMPILER_FLAG_STATIC_LIBSTDCPP )
-
-		if( COMPILER_FLAG_STATIC_LIBGCC )
-			target_link_libraries( ${target} PRIVATE -static-libgcc )
-		endif()
-		if( COMPILER_FLAG_STATIC_LIBSTDCPP )
-			target_link_libraries( ${target} PRIVATE -static-libstdc++ )
+	if( ${var} )
+		if( "${type}" STREQUAL "compile" )
+			target_compile_options( ${target} PRIVATE ${flag} )
+		elseif( "${type}" STREQUAL "link" )
+			target_link_libraries( ${target} PRIVATE ${flag} )
+		else()
+			message( FATAL_ERROR "Unknown flag type '${type}'" )
 		endif()
 	endif()
 endfunction()
@@ -62,9 +32,28 @@ endfunction()
 function( other_target target )
 	if( MSVC )
 		set_property( TARGET ${target} APPEND PROPERTY COMPILE_FLAGS /MT )
-		set_property( TARGET ${target} APPEND PROPERTY LINK_FLAGS /OPT:REF )
+		set_property( TARGET ${target} APPEND PROPERTY LINK_FLAGS    /OPT:REF )
 	endif()
 endfunction()
+
+function( frm2png_target target )
+	other_target( ${target} )
+
+	if( UNIX )
+		set( CMAKE_BUILD_TYPE RelWithDebInfo )
+
+		compiler_flag( "compile" ${target} -Wall      COMPILER_FLAG_WALL )
+		compiler_flag( "compile" ${target} -Werror    COMPILER_FLAG_WERROR )
+		compiler_flag( "compile" ${target} -Wextra    COMPILER_FLAG_WEXTRA )
+		compiler_flag( "compile" ${target} -Wpedantic COMPILER_FLAG_WPEDANTIC )
+
+		#compiler_flag( "compile" ${target} -Wconversion COMPILER_FLAG_WCONVERSION )
+
+		compiler_flag( "link" ${target} -static-libgcc    COMPILER_FLAG_STATIC_LIBGCC )
+		compiler_flag( "link" ${target} -static-libstdc++ COMPILER_FLAG_STATIC_LIBSTDCPP )
+	endif()
+endfunction()
+
 
 ##
 ## zlib
@@ -103,6 +92,16 @@ add_subdirectory( libfalltergeist-mini EXCLUDE_FROM_ALL )
 add_dependencies( falltergeist-mini zlib_h )
 
 ##
+## clipp
+##
+
+# added minimal setup here, as subdirectory requires cmake v3.8
+# add_subdirectory( clipp EXCLUDE_FROM_ALL )
+message( STATUS "Configuring clipp..." )
+add_library( clipp INTERFACE )
+target_include_directories( clipp INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/clipp/include" )
+
+##
 ## frm2png
 ##
 
@@ -112,8 +111,6 @@ target_sources( frm2png
 	PRIVATE
 		ColorPal.cpp
 		ColorPal.h
-		Exception.cpp
-		Exception.h
 		PngImage.cpp
 		PngImage.h
 		PngWriter.cpp
@@ -123,6 +120,6 @@ target_sources( frm2png
 )
 
 target_include_directories( frm2png PRIVATE "${DIR_LIBPNG_BINARY}" libfalltergeist-mini libpng-apng )
-target_link_libraries( frm2png PRIVATE png_static falltergeist-mini )
+target_link_libraries( frm2png PRIVATE png_static falltergeist-mini clipp )
 
 frm2png_target( frm2png )

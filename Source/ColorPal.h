@@ -24,14 +24,11 @@
 
 // C++ standard includes
 #include <unordered_map>
+#include <string>
 #include <vector>
-
-// frm2png includes
 
 // falltergeist includes
 #include "Format/Pal/Color.h"
-
-// Third party includes
 
 namespace frm2png
 {

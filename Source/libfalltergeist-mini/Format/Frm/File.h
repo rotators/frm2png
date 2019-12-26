@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include "../Dat/Item.h"
@@ -33,14 +34,11 @@ namespace Falltergeist
                     uint16_t framesPerDirection() const;
                     uint16_t actionFrame() const;
 
-                    uint16_t width() const;
-                    uint16_t height() const;
+                    uint16_t maxFrameWidth() const;
+                    uint16_t maxFrameHeight() const;
 
                     int16_t offsetX(unsigned int direction = 0, unsigned int frame = 0) const;
                     int16_t offsetY(unsigned int direction = 0, unsigned int frame = 0) const;
-
-                    uint32_t* rgba(Pal::File* palFile);
-                    std::vector<bool>& mask(Pal::File* palFile);
 
                     const std::vector<Direction>& directions() const;
 

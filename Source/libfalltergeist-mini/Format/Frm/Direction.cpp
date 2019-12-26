@@ -32,22 +32,20 @@ namespace Falltergeist
                 return _dataOffset;
             }
 
-            uint16_t Direction::width() const
+            uint16_t Direction::maxFrameWidth() const
             {
-                auto widest = std::max_element(_frames.begin(), _frames.end(), [](const Frame& a, const Frame& b) {
+                return std::max_element( _frames.begin(), _frames.end(), []( const Frame& a, const Frame& b )
+                {
                     return a.width() < b.width();
-                });
-
-                return static_cast<uint16_t>((widest->width() + 2) * _frames.size());
+                })->width();
             }
 
-            uint16_t Direction::height() const
+            uint16_t Direction::maxFrameHeight() const
             {
-                auto tallest = std::max_element(_frames.begin(), _frames.end(), [](const Frame& a, const Frame& b)
+                return std::max_element( _frames.begin(), _frames.end(), []( const Frame& a, const Frame& b )
                 {
                     return a.height() < b.height();
-                });
-                return tallest->height() + 2;
+                })->height();
             }
 
             void Direction::setDataOffset(uint32_t value)
