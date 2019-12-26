@@ -37,24 +37,24 @@ namespace frm2png
 {
     class PngWriter
     {
-        protected:
-            std::ofstream _stream;
-            png_structp _png_write;
-            png_infop _png_info;
+    protected:
+        std::ofstream _stream;
+        png_structp   _png_write;
+        png_infop     _png_info;
 
-        public:
-            PngWriter(const std::string& filename);
-            ~PngWriter();
+    public:
+        PngWriter( const std::string& filename );
+        ~PngWriter();
 
-        protected:
-            static void writeCallback(png_structp png_struct, png_bytep data, png_size_t length);
-            static void flushCallback(png_structp png_ptr);
+    protected:
+        static void writeCallback( png_structp png_struct, png_bytep data, png_size_t length );
+        static void flushCallback( png_structp png_ptr );
 
-        public:
-            void write(const PngImage& image);
+    public:
+        void write( const PngImage& image );
 
-            void writeAnimHeader( uint32_t width, uint32_t height, uint32_t frames, uint32_t loop, bool preview );
-            void writeAnimFrame( const PngImage& image, uint32_t offsetX, uint32_t offsetY, uint16_t delayNum, uint16_t delayDen, uint8_t dispose, uint8_t blend );
-            void writeAnimEnd();
+        void writeAnimHeader( uint32_t width, uint32_t height, uint32_t frames, uint32_t loop, bool preview );
+        void writeAnimFrame( const PngImage& image, uint32_t offsetX, uint32_t offsetY, uint16_t delayNum, uint16_t delayDen, uint8_t dispose, uint8_t blend );
+        void writeAnimEnd();
     };
 }

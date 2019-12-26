@@ -38,14 +38,14 @@ namespace frm2png
         if( !width && !height )
             throw std::runtime_error( "PngImage::PngImage() - Invalid size" );
 
-        _width = width;
+        _width  = width;
         _height = height;
 
         _rows = new png_bytep[_height]();
 
-        for( uint32_t y = 0; y != _height; ++y)
+        for( uint32_t y = 0; y != _height; ++y )
         {
-            _rows[y] = new png_byte[_width*4]();
+            _rows[y] = new png_byte[_width * 4]();
         }
     }
 
@@ -53,20 +53,20 @@ namespace frm2png
     {
         for( uint32_t y = 0; y != _height; ++y )
         {
-            delete [] _rows[y];
+            delete[] _rows[y];
         }
-        delete [] _rows;
+        delete[] _rows;
     }
 
-    void PngImage::setPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha /* = 255 */)
+    void PngImage::setPixel( uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha /* = 255 */ )
     {
         if( x > _width || y > _height )
-            throw std::runtime_error( "PngImage::setPixel() - Invalid position " + std::to_string(x) + "," + std::to_string(y) );
+            throw std::runtime_error( "PngImage::setPixel() - Invalid position " + std::to_string( x ) + "," + std::to_string( y ) );
 
-        _rows[y][x*4] = r;
-        _rows[y][x*4 + 1] = g;
-        _rows[y][x*4 + 2] = b;
-        _rows[y][x*4 + 3] = alpha;
+        _rows[y][x * 4]     = r;
+        _rows[y][x * 4 + 1] = g;
+        _rows[y][x * 4 + 2] = b;
+        _rows[y][x * 4 + 3] = alpha;
     }
 
     uint32_t PngImage::width() const

@@ -37,20 +37,20 @@ namespace frm2png
 {
     class PngImage
     {
-        public:
-            PngImage(uint32_t width, uint32_t height);
-            ~PngImage();
+    public:
+        PngImage( uint32_t width, uint32_t height );
+        ~PngImage();
 
-            void setPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha = 255);
+        void setPixel( uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha = 255 );
 
-            uint32_t width() const;
-            uint32_t height() const;
+        uint32_t width() const;
+        uint32_t height() const;
 
-            png_bytepp rows() const;
+        png_bytepp rows() const;
 
-        protected:
-            uint32_t _width;
-            uint32_t _height;
-            png_bytepp _rows = 0;
+    protected:
+        uint32_t   _width;
+        uint32_t   _height;
+        png_bytepp _rows = 0;
     };
 }

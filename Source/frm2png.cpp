@@ -22,21 +22,21 @@
  */
 
 // C++ standard includes
-#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 // frm2png includes
 #include "ColorPal.h"
-#include "PngImage.h"
-#include "PngWriter.h"
+#include "PngGenerator.h"
 
 // falltergeist includes
 #include "Format/Dat/Stream.h"
 #include "Format/Frm/File.h"
+#include "Format/Pal/File.h"
 
 // third party includes
 #include <clipp.h>
@@ -47,7 +47,7 @@ struct Options
 {
     clipp::group CommandLine;
 
-    bool Help = false;
+    bool Help    = false;
     bool Version = false;
 
     // input
@@ -57,7 +57,7 @@ struct Options
     std::string FrmFile;
 
     // output
-    std::string Generator;
+    std::string Generator = "auto";
     std::string PngFile;
 
     // misc
@@ -68,75 +68,44 @@ struct Options
 
     void Init()
     {
-        auto cmdInfo = (
+        // clang-format off
+
+        auto cmdInfo =
+        (
             clipp::option( "--help", "-h" ).set( Help ).doc( "show help summary" ) |
             clipp::option( "--version", "-v" ).set( Version ).doc( "show program version" )
-        ).doc( "General options\n" );
+        )
+        .doc( "General options" );
 
-        auto cmdInput = (
-            (clipp::option( "-d", "--dat" ) & clipp::value("DAT", DatFile )).doc( "Use specified DAT file" ),
+        auto cmdInput =
+        (
+            (clipp::option( "-d", "--dat" ) & clipp::value( "DAT", DatFile )).doc( "Use specified DAT file" ),
             (clipp::option( "-p", "--pal" ) & clipp::value( "PAL", PalFile )).doc( "Use specified PAL file" ) |
             (clipp::option( "-P", "--palette" ) & clipp::value( "name", PalName )).doc( "Use embedded palette" )
-        ).doc( "Input options" );
+        )
+        .doc( "Input options" );
 
-        auto cmdOutput = (
+        auto cmdOutput =
+        (
             (clipp::option( "-g", "--generator" ) & clipp::word( "name", Generator )).doc( "generator" ),
             (clipp::option( "-o", "--output" ) & clipp::value( "PNG", PngFile )).doc( "output filename" )
-        ).doc( "Output options" );
+        )
+        .doc( "Output options" );
 
-        auto cmdMisc = (
-            clipp::option( "-V", "--verbose").set( Verbose ).doc( "prints various debug messages" ),
+        auto cmdMisc =
+        (
+            clipp::option( "-V", "--verbose" ).set( Verbose ).doc( "prints various debug messages" ),
             clipp::option( "-X", "--clean" )
-        ).doc( "Misc options" );
+        )
+        .doc( "Misc options" );
 
-        CommandLine = (cmdInfo | (cmdInput, cmdOutput, cmdMisc, clipp::value( "filename.frm", FrmFile )));
+        // clang-format on
+
+        CommandLine = ( cmdInfo | ( cmdInput, cmdOutput, cmdMisc, clipp::value( "filename.frm", FrmFile ) ) );
     }
 };
 
-struct Logging
-{
-    bool        Enabled;
-    bool        Cache;
-    std::size_t Indent;
-
-    std::vector<std::pair<std::size_t, std::string>> Cached;
-
-    Logging() :
-        Enabled( false ),
-        Cache( false ),
-        Indent( 0 )
-    {}
-
-    void Clear()
-    {
-        Enabled = Cache = false;
-        Indent = 0;
-        Cached.clear();
-    }
-
-    Logging& operator<<( const int8_t& indent )
-    {
-        if( Enabled )
-            Indent += indent;
-
-        return *this;
-    }
-
-    Logging& operator<<( const std::string& message )
-    {
-        if( Enabled )
-        {
-            if( Cache )
-                Cached.push_back( std::make_pair( Indent, message ) );
-            else
-                std::cout << "> " << std::string( Indent, ' ' ) << message << std::endl;
-        }
-
-        return *this;
-    }
-};
-
-void printVersion()
+static void printVersion()
 {
     std::cout << "FRM to PNG converter v0.1.5r" << std::endl
               << "Copyright (c) 2015-2018 Falltergeist developers" << std::endl
@@ -144,22 +113,22 @@ void printVersion()
               << std::endl;
 }
 
-int exitVersion()
+static int exitVersion()
 {
     printVersion();
 
     return EXIT_SUCCESS;
 }
 
-int exitHelp( int exitCode, Options& options )
+static int exitHelp( int exitCode, Options& options )
 {
     printVersion();
 
-    auto cmdFormat = clipp::doc_formatting{}
-                     .first_column( 2 )
-                     .indent_size( 2 )
-                     .doc_column( 30 )
-                     .last_column( 78 );
+    auto cmdFormat = clipp::doc_formatting {}
+                         .first_column( 2 )
+                         .indent_size( 2 )
+                         .doc_column( 30 )
+                         .last_column( 78 );
 
     std::cout << "Usage:" << std::endl
               << clipp::usage_lines( options.CommandLine, "frm2png", cmdFormat ) << std::endl
@@ -173,7 +142,7 @@ int exitHelp( int exitCode, Options& options )
     return exitCode;
 }
 
-void printFRM(const std::string& filename, Falltergeist::Format::Frm::File& frm)
+static void printFRM( const std::string& filename, Falltergeist::Format::Frm::File& frm )
 {
     std::cout << "=== FRM info ===" << std::endl;
     std::cout << "Filename ..............  " << filename << std::endl;
@@ -188,15 +157,15 @@ void printFRM(const std::string& filename, Falltergeist::Format::Frm::File& frm)
 // -> path/to/
 // -> file
 // -> .ext
-void splitFilename( const std::string& full, std::string& path, std::string& basename, std::string& extension )
+static void splitFilename( const std::string& full, std::string& path, std::string& basename, std::string& extension )
 {
-    size_t pos;
+    size_t      pos;
     std::string filename;
 
     pos = full.find_last_of( '/' );
     if( pos != std::string::npos )
     {
-        path = full.substr( 0, pos + 1 );
+        path     = full.substr( 0, pos + 1 );
         filename = full.substr( pos + 1 );
 
         if( path == "." )
@@ -204,38 +173,38 @@ void splitFilename( const std::string& full, std::string& path, std::string& bas
     }
     else
     {
-        path = "";
+        path     = "";
         filename = full;
     }
 
     pos = filename.find_last_of( '.' );
     if( pos != std::string::npos )
     {
-        basename = filename.substr( 0, pos );
+        basename  = filename.substr( 0, pos );
         extension = filename.substr( pos );
     }
     else
     {
-        basename = filename;
+        basename  = filename;
         extension = "";
     }
 }
 
 template<typename T>
-T loadFile(const std::string& filename)
+T loadFile( const std::string& filename )
 {
     std::ifstream stream;
 
-    stream.open(filename, std::ios_base::in | std::ios_base::binary);
-    if (!stream.is_open())
-        throw std::runtime_error( "openStreamFile() - Can't open input file: " + filename );
+    stream.open( filename, std::ios_base::in | std::ios_base::binary );
+    if( !stream.is_open() )
+        throw std::runtime_error( "loadFile() - Can't open input file: " + filename );
 
     T obj = T( stream );
 
     return obj;
 }
 
-Falltergeist::Format::Pal::File loadPal( const Options& options )
+static Falltergeist::Format::Pal::File loadPal( const Options& options )
 {
     if( !options.PalFile.empty() )
         return loadFile<Falltergeist::Format::Pal::File>( options.PalFile );
@@ -255,29 +224,31 @@ Falltergeist::Format::Pal::File loadPal( const Options& options )
     throw std::runtime_error( "loadPal() - unknown palette name '" + palName + "'" );
 }
 
-int main(int argc, char** argv)
+int main( int argc, char** argv )
 {
-   Logging verbose;
-   Options options;
-   options.Init();
+    Options options;
+    options.Init();
 
     auto optionsResult = clipp::parse( argc, argv, options.CommandLine );
+    {
+        Logging verbose;
 
-    verbose.Enabled = options.Verbose;
-    verbose << "command line" << 1
-            << "Help      = " + std::string(options.Help ? "true" : "false")
-            << "Version   = " + std::string(options.Version ? "true" : "false")
-            // input
-            << "DatFile   = " + options.DatFile
-            << "PalFile   = " + options.PalFile
-            << "PalName   = " + options.PalName
-            << "FrmFile   = " + options.FrmFile
-            // output
-            << "Generator = " + options.Generator
-            << "PngFile   = " + options.PngFile
-            // misc
-            << "Verbose   = " + std::string(options.Verbose ? "true" : "false" )
-            << -1;
+        verbose.Enabled = options.Verbose;
+        verbose << "command line" << 1
+                << "Help      = " + std::string( options.Help ? "true" : "false" )
+                << "Version   = " + std::string( options.Version ? "true" : "false" )
+                // input
+                << "DatFile   = " + options.DatFile
+                << "PalFile   = " + options.PalFile
+                << "PalName   = " + options.PalName
+                << "FrmFile   = " + options.FrmFile
+                // output
+                << "Generator = " + options.Generator
+                << "PngFile   = " + options.PngFile
+                // misc
+                << "Verbose   = " + std::string( options.Verbose ? "true" : "false" )
+                << -1;
+    }
 
     if( !optionsResult )
         return exitHelp( EXIT_FAILURE, options );
@@ -286,218 +257,81 @@ int main(int argc, char** argv)
     else if( options.Version )
         return exitVersion();
 
-    // split output filename into few parts; helps generators to modify filename provided by user
-
-    std::string pngPath, pngBasename, pngExtension, pngFull;
-
-    if( !options.PngFile.empty() )
-        pngFull = options.PngFile;
-    else
-    {
-        std::string frmPath, frmBasename, frmExtension;
-
-        splitFilename( options.FrmFile, frmPath, frmBasename, frmExtension );
-        pngFull = frmPath + frmBasename + ".png";
-    }
-
-    splitFilename( pngFull, pngPath, pngBasename, pngExtension );
-
-    verbose << "png = full[" + pngFull + "] path[" + pngPath + "] basename[" + pngBasename + "] extension[" + pngExtension + "]";
-
-    verbose << "enter main block" << 1;
     try
     {
-        verbose << "load frm";
-        auto frm = loadFile<Falltergeist::Format::Frm::File>( options.FrmFile );
-        printFRM( options.FrmFile, frm );
+        Logging logVerbose( options.Verbose );
 
-        verbose << "load palette";
-        Falltergeist::Format::Pal::File pal = loadPal( options );
-
-        // TODO? make rgbMultiplier configurable
-        static constexpr uint8_t rgbMultiplier = 4;
-
-        //if (apng && frm.directions().size() == 1)
-        //    apng = false;
-
-        verbose << "select generator";
-        if ( options.Generator.empty() )
+        logVerbose << "init generators" << 1;
+        InitPngGenerators();
+        for( const auto& vg : Generator )
         {
-            verbose << "start generator = legacy" << 1;
+            logVerbose << vg.first;
+        }
+        logVerbose << -1;
 
-            // draw .png
+        // TODO for( const std::string& frmFile : options.FrmFiles )
+        {
+            const std::string frmFile = options.FrmFile;
 
-            uint16_t maxWidth = frm.maxFrameWidth();
-            uint16_t maxHeight = frm.maxFrameHeight();
+            PngGeneratorData data( loadFile<Falltergeist::Format::Frm::File>( frmFile ), loadPal( options ) );
 
-            PngImage image( maxWidth * frm.framesPerDirection(), maxHeight * static_cast<uint8_t>( frm.directions().size() ));
+            printFRM( frmFile, data.Frm );
 
-            uint8_t  dirIdx = 0;
-            for( const auto& dir : frm.directions() )
+            // split output filename into few parts; helps generators to modify filename provided by user
+
+            std::string pngFull;
+
+            if( !options.PngFile.empty() )
+                pngFull = options.PngFile;
+            else
             {
-                uint16_t frameIdx = 0;
+                std::string frmPath, frmBasename, frmExtension;
 
-                for( const auto& frame : dir.frames() )
-                {
-                    const uint32_t pngX = maxWidth * frameIdx;
-                    const uint32_t pngY = maxHeight * dirIdx;
-
-                    verbose << "draw dir:" + std::to_string(dirIdx) + " frame:" + std::to_string(frameIdx)
-                            + " @ " + std::to_string(pngX) + "," + std::to_string(pngY)
-                            + " -> " + std::to_string(frame.width()) + "x" + std::to_string(frame.height())
-                            ;
-
-                    for (uint16_t y = 0, h = frame.height(); y < h; y++) {
-                        for (uint16_t x = 0, w = frame.width(); x < w; x++) {
-                            const Falltergeist::Format::Pal::Color* color = pal.color(frame.index(x, y));
-                            image.setPixel(pngX + x, pngY + y, color->red() * rgbMultiplier, color->green()  * rgbMultiplier, color->blue()  * rgbMultiplier, color->alpha());
-                        }
-                    }
-                    frameIdx++;
-                }
-                dirIdx++;
+                splitFilename( options.FrmFile, frmPath, frmBasename, frmExtension );
+                pngFull = frmPath + frmBasename + ".png";
             }
 
-            verbose << -1 << "end generator = legacy";
+            splitFilename( pngFull, data.PngPath, data.PngBasename, data.PngExtension );
 
-            verbose << "write png = " + pngFull + " = " + std::to_string( image.width() ) + "x" + std::to_string( image.height() );
-            PngWriter png( pngFull );
-            png.write( image );
-        }
-        else if( options.Generator == "apng" ) // experimental apng support
-        {
-            verbose << "start generator = apng" << 1;
+            logVerbose << "png = path[" + data.PngPath + "] basename[" + data.PngBasename + "] extension[" + data.PngExtension + "]";
 
-            uint8_t dirIdx = 0;
-            for (const auto& dir : frm.directions()) {
-                // TODO support acTL + fcTL + IDAT variant
-                static constexpr bool firstIsAnim = false;
+            // TODO? make rgbMultiplier configurable
+            data.RgbMultiplier = 4;
 
-                // .frm frames iteration [1/3]; init conversion from .frm offsets to .png offsets
+            // select and run .png generator
+            std::string generator = options.Generator;
+            if( generator == "auto" )
+            {
+                if( data.Frm.directions().size() == 1 )
+                    generator = "legacy";
+                //else if( data.Frm.framesPerDirection() == 1 )
+                //    generator = "png";
+                else
+                    generator = "apng";
 
-                uint32_t pngWidth = 0, pngHeight = 0;
-                int32_t spotX = 0, spotY = 0;
-                std::vector<std::pair<int32_t,int32_t>> offset;
+                logVerbose << "selected generator = " + generator;
+            }
+            else
+                logVerbose << "preselected generator = " + generator;
 
-                uint16_t frameIdx = 0;
-                for (const auto& frame : dir.frames()) {
-                    if (!frameIdx) {
-                        // save first .frm frame spot position
-
-                        spotX = frame.width() / 2;
-                        spotY = frame.height();
-
-                        offset.emplace_back( 0, 0 );
-                    } else {
-                        // apply .frm offsets to cached spot
-
-                        spotX += frame.offsetX();
-                        spotY += frame.offsetY();
-
-                        // convert .frm spot to .png offset
-
-                        offset.emplace_back( spotX - frame.width() / 2, spotY - frame.height() );
-                        verbose << "offset dir:" + std::to_string(dirIdx) + " frame:" + std::to_string(frameIdx) + " = " + std::to_string(offset.back().first) + "," + std::to_string(offset.back().second);
-
-                        // shift position of first frame, if needed
-
-                        if (offset.back().first < 0)
-                            offset.front().first = std::max(offset.front().first, -offset.back().first);
-
-                        if (offset.back().second < 0)
-                            offset.front().second = std::max(offset.front().second, -offset.back().second);
-                    }
-                    frameIdx++;
-                }
-
-                // .frm frames iteration [2/3]; finish conversion from .frm offsets to .png offsets, find .png image size
-
-                frameIdx = 0;
-                for (auto& frameOffset : offset) {
-                    // apply first frame offset to other frames
-
-                    if (frameIdx) {
-                        frameOffset.first += offset.front().first;
-                        frameOffset.second += offset.front().second;
-                    }
-
-                    pngWidth = std::max<uint32_t>(pngWidth, frameOffset.first + dir.frames().at(frameIdx).width());
-                    pngHeight = std::max<uint32_t>(pngHeight, frameOffset.second + dir.frames().at(frameIdx).height());
-
-                    frameIdx++;
-                }
-
-                const std::string pngName = pngPath + pngBasename + "_" + std::to_string( dirIdx ) + pngExtension;
-
-                verbose << "write png = " + pngName + " = " + std::to_string(pngWidth) + "x" + std::to_string(pngHeight) << 1;
-                PngWriter png( pngName );
-
-                png.writeAnimHeader( pngWidth, pngHeight, static_cast<uint16_t>( dir.frames().size() ) + (firstIsAnim ? 0 : 1), 0, !firstIsAnim );
-
-                if (!firstIsAnim) {
-                    // if first image is not supposed to be part of animation, copy of first frame is added and moved to center
-                    // software supporting APNG will ignore it, anything else will use that as image to display
-
-                    auto& frame = dir.frames().front();
-                    PngImage defaultImage(pngWidth, pngHeight);
-
-                    // draw .png frame
-
-                    const uint32_t pngX = pngWidth / 2 - frame.width() / 2;
-                    const uint32_t pngY = pngHeight / 2 - frame.height() / 2;
-                    for (uint16_t x = 0, w = frame.width(); x < w; x++) {
-                        for (uint16_t y = 0, h = frame.height(); y < h; y++) {
-                            const Falltergeist::Format::Pal::Color* color = pal.color(frame.index(x, y));
-                            defaultImage.setPixel(pngX + x, pngY + y, color->red() * rgbMultiplier, color->green() * rgbMultiplier, color->blue() * rgbMultiplier, color->alpha());
-                        }
-                    }
-
-                    png.writeAnimFrame( defaultImage, 0, 0, 0, 0, 0, 0 );
-                }
-
-                // .frm frames iteration [3/3]; draw .png frames
-                frameIdx = 0;
-                for (const auto& frame : dir.frames()) {
-
-                    // draw .png frame
-
-                    verbose << "draw frame:" + std::to_string(frameIdx) + " @ " + std::to_string(offset.at(frameIdx).first) + "," + std::to_string(offset.at(frameIdx).second) + " -> " + std::to_string(frame.width()) + "x" + std::to_string(frame.height());
-
-                    PngImage image(frame.width(), frame.height());
-                    for (uint16_t y = 0, h = frame.height(); y < h; y++) {
-                        for (uint16_t x = 0, w = frame.width(); x < w; x++) {
-                            const Falltergeist::Format::Pal::Color* color = pal.color(frame.index(x, y));
-                            image.setPixel(x, y, color->red() * rgbMultiplier, color->green() * rgbMultiplier, color->blue() * rgbMultiplier, color->alpha());
-                        }
-                    }
-
-                    png.writeAnimFrame( image, offset.at(frameIdx).first, offset.at(frameIdx).second, 0, frm.framesPerSecond() / 2, PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
-
-                    frameIdx++;
-                }
-
-                png.writeAnimEnd();
-                dirIdx++;
-                verbose << -1;
+            auto itGenerator = Generator.find( generator );
+            if( itGenerator == Generator.end() )
+            {
+                std::cout << "Unknown generator: '" << generator << "'" << std::endl;
+                return EXIT_FAILURE;
             }
 
-            verbose << -1 << "end generator = apng";
-        }
-        else
-        {
-            std::cout << "Unknown generator: '" << options.Generator << "'" << std::endl;
-            return EXIT_FAILURE;
-        }
+            logVerbose << "start generator = " + generator << 1;
+            itGenerator->second( data, logVerbose );
+            logVerbose << -1 << "end generator = " + generator;
+
+        } // foreach .frm
     }
     catch( std::exception& e )
     {
-        verbose << "exception";
-
         std::cout << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-    verbose << -1 << "exit main block";
-
 
     return EXIT_SUCCESS;
 }

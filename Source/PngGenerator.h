@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,15 +22,38 @@
 
 #pragma once
 
-// C++ standard includes
+// c++ includes
+#include <cstdint>
+#include <functional>
 #include <string>
 #include <unordered_map>
-#include <vector>
+
+// frm2png includes
+#include "Logging.h"
 
 // falltergeist includes
-#include "Format/Pal/Color.h"
+#include "Format/Frm/File.h"
+#include "Format/Pal/File.h"
 
 namespace frm2png
 {
-    extern std::unordered_map<std::string, std::vector<Falltergeist::Format::Pal::Color>> ColorPal;
+    struct PngGeneratorData
+    {
+        Falltergeist::Format::Frm::File Frm;
+        Falltergeist::Format::Pal::File Pal;
+
+        uint8_t RgbMultiplier;
+
+        std::string PngPath;
+        std::string PngBasename;
+        std::string PngExtension;
+
+        PngGeneratorData( Falltergeist::Format::Frm::File&& frm, Falltergeist::Format::Pal::File&& pal );
+    };
+
+    typedef std::function<void( const PngGeneratorData&, Logging& )> PngGeneratorFunc;
+
+    extern std::unordered_map<std::string, PngGeneratorFunc> Generator;
+
+    void InitPngGenerators();
 }

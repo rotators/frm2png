@@ -111,6 +111,10 @@ target_sources( frm2png
 	PRIVATE
 		ColorPal.cpp
 		ColorPal.h
+		Logging.cpp
+		Logging.h
+		PngGenerator.cpp
+		PngGenerator.h
 		PngImage.cpp
 		PngImage.h
 		PngWriter.cpp

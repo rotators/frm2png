@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,15 +22,30 @@
 
 #pragma once
 
-// C++ standard includes
+// c++ includes
+#include <cstdint>
 #include <string>
-#include <unordered_map>
+#include <utility>
 #include <vector>
-
-// falltergeist includes
-#include "Format/Pal/Color.h"
 
 namespace frm2png
 {
-    extern std::unordered_map<std::string, std::vector<Falltergeist::Format::Pal::Color>> ColorPal;
+    class Logging
+    {
+    public:
+        bool        Enabled;
+        bool        Cache;
+        std::size_t Indent;
+
+        std::vector<std::pair<std::size_t, std::string>> Cached;
+
+    public:
+        Logging( bool enabled = false, bool cache = false, size_t indent = 0 );
+
+    public:
+        void Clear();
+
+        Logging& operator<<( const int8_t& indent );
+        Logging& operator<<( const std::string& message );
+    };
 }
