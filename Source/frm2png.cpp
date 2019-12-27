@@ -168,7 +168,7 @@ static void splitFilename( const std::string& full, std::string& path, std::stri
         path     = full.substr( 0, pos + 1 );
         filename = full.substr( pos + 1 );
 
-        if( path == "." )
+        if( path == "./" )
             path.clear();
     }
     else

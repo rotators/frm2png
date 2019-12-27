@@ -10,34 +10,66 @@ on:
 jobs:
 
  frm2png:
-  name:    frm2png (${{ matrix.cfg.name }} ${{ matrix.cfg.platform }})
+  name:    ${{ matrix.cfg.name }} (${{ matrix.cfg.runner-os }} ${{ matrix.cfg.platform }})
   runs-on: ${{ matrix.cfg.os }}
   strategy:
    fail-fast: false
    matrix:
     cfg:
-    - { os: ubuntu-latest,  name: Linux,   platform: x64, frm2png: Build/frm2png }
-    - { os: windows-latest, name: Windows, platform: x64, frm2png: Build/Release/frm2png.exe }
+    # 'runner-os' simulates standard runner.os which cannot be used in job.<id>.name
+    - { os: ubuntu-latest,  name: GCC,    runner-os: Linux,   platform: x32, cc: gcc,   cxx: g++,     bin: Build }
+    - { os: ubuntu-latest,  name: GCC,    runner-os: Linux,   platform: x64, cc: gcc,   cxx: g++,     bin: Build }
+    - { os: ubuntu-latest,  name: Clang,  runner-os: Linux,   platform: x32, cc: clang, cxx: clang++, bin: Build }
+    - { os: ubuntu-latest,  name: Clang,  runner-os: Linux,   platform: x64, cc: clang, cxx: clang++, bin: Build }
+    - { os: windows-latest, name: VS2019, runner-os: Windows, platform: x32, cc: cl,    cxx: cl,      bin: Build/Release }
+    - { os: windows-latest, name: VS2019, runner-os: Windows, platform: x64, cc: cl,    cxx: cl,      bin: Build/Release }
 
   steps:
 
   - name: Clone
     uses: actions/checkout@v2
 
-  - name: Clone submodules
-    run:  git submodule update --init
+  - name:  Clone submodules
+    run:   git submodule update --init
+    shell: bash
+
+  - name:  Configure
+    run:   |
+           :
+           if [ "$RUNNER_OS" == "Linux" ]; then
+              if [ "${{ matrix.cfg.platform }}" == "x32" ]; then
+                 sudo apt update
+                 sudo apt install -y gcc-multilib g++-multilib
+                 echo ::set-env name=GHA_TOOLCHAIN::-DCMAKE_TOOLCHAIN_FILE=$(pwd)/Source/CMake.Linux32
+              fi
+           elif [ "$RUNNER_OS" == "Windows" ]; then
+                if   [ "${{ matrix.cfg.platform }}" == "x32" ]; then
+                     echo ::set-env name=GHA_PLATFORM::-A Win32
+                elif [ "${{ matrix.cfg.platform }}" == "x64" ]; then
+                     echo ::set-env name=GHA_PLATFORM::-A x64
+                else
+                     echo "[ERROR] Unknown platform ${{ matrix.cfg.platform }}"
+                     exit 1
+                fi
+           fi
+    shell: bash
 
   - name:  Build
     run:   |
            :
            mkdir Build && cd Build
-           cmake ../Source
+           cmake $GHA_TOOLCHAIN $GHA_TOOLSET $GHA_PLATFORM ../Source
            cmake --build . --config Release
     shell: bash
+    env:
+     CC:  ${{ matrix.cfg.cc }}
+     CXX: ${{ matrix.cfg.cxx }}
 
   - name:  Build check
     run:   |
            :
-           file ${{ matrix.cfg.frm2png }}
-           ldd  ${{ matrix.cfg.frm2png }}
+           for name in frm2png; do
+               file ${{ matrix.cfg.bin }}/$name
+               ldd  ${{ matrix.cfg.bin }}/$name
+           done
     shell: bash
