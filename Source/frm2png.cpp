@@ -79,7 +79,7 @@ struct Options
 
         auto cmdInput =
         (
-            (clipp::option( "-d", "--dat" ) & clipp::value( "DAT", DatFile )).doc( "Use specified DAT file" ),
+        //  (clipp::option( "-d", "--dat" ) & clipp::value( "DAT", DatFile )).doc( "Use specified DAT file" ),
             (clipp::option( "-p", "--pal" ) & clipp::value( "PAL", PalFile )).doc( "Use specified PAL file" ) |
             (clipp::option( "-P", "--palette" ) & clipp::value( "name", PalName )).doc( "Use embedded palette" )
         )
@@ -87,7 +87,7 @@ struct Options
 
         auto cmdOutput =
         (
-            (clipp::option( "-g", "--generator" ) & clipp::word( "name", Generator )).doc( "generator" ),
+            (clipp::option( "-g", "--generator" ) & clipp::value( "name", Generator )).doc( "generator" ),
             (clipp::option( "-o", "--output" ) & clipp::value( "PNG", PngFile )).doc( "output filename" )
         )
         .doc( "Output options" );
@@ -307,7 +307,7 @@ int main( int argc, char** argv )
                 //else if( data.Frm.framesPerDirection() == 1 )
                 //    generator = "png";
                 else
-                    generator = "apng";
+                    generator = "anim";
 
                 logVerbose << "selected generator = " + generator;
             }

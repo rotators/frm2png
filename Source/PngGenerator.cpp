@@ -52,6 +52,14 @@ namespace frm2png
     // helpers
     //
 
+    static constexpr uint8_t DIR_NE  = 0;
+    static constexpr uint8_t DIR_E   = 1;
+    static constexpr uint8_t DIR_SE  = 2;
+    static constexpr uint8_t DIR_SW  = 3;
+    static constexpr uint8_t DIR_W   = 4;
+    static constexpr uint8_t DIR_NW  = 5;
+    static constexpr uint8_t DIR_MAX = 6;
+
     typedef std::vector<std::pair<int32_t, int32_t>> PngOffsets;
 
     // converts .frm frames offsets to .png frames offsets
@@ -62,6 +70,8 @@ namespace frm2png
 
         int32_t spotX = 0, spotY = 0;
 
+        // result[F].first  = frame F, offset X
+        // result[F].second = frame F, offset Y
         std::vector<std::pair<int32_t, int32_t>> result;
 
         uint16_t frameIdx = 0;
@@ -168,13 +178,14 @@ namespace frm2png
     }
 
     // create multiple animated .png files (one per direction)
-    static void GeneratorAPNG( const PngGeneratorData& data, Logging& logVerbose )
+    static void GeneratorAnim( const PngGeneratorData& data, Logging& logVerbose )
     {
         uint8_t dirIdx = 0;
         for( const auto& dir : data.Frm.directions() )
         {
             const std::string pngName  = data.PngPath + data.PngBasename + "_" + std::to_string( dirIdx ) + data.PngExtension;
             uint32_t          pngWidth = 0, pngHeight = 0;
+
             // TODO support acTL + fcTL + IDAT variant
             static constexpr bool firstIsAnim = false;
 
@@ -224,11 +235,150 @@ namespace frm2png
         }
     }
 
+    // create single animated .png files with all directions included
+    static void GeneratorAnimPacked( const PngGeneratorData& data, Logging& logVerbose )
+    {
+        const std::string pngName  = data.PngPath + data.PngBasename + data.PngExtension;
+        uint32_t          pngWidth = 0, pngHeight = 0, pngCenterX = 0;
+        constexpr uint8_t pngSpacing = 4;
+
+        // TODO support acTL + fcTL + IDAT variant
+        static constexpr bool firstIsAnim = false;
+
+        // TODO? fallback to 'anim' generator?
+        if( data.Frm.directions().size() != 6 )
+            throw std::runtime_error( "GeneratorAnimPacked() - .frm file must contain frames for exactly 6 directions" );
+
+        // cache size/offsets of all directions
+
+        // dirSize[D].first  = direction D, width
+        // dirSize[D].second = direction D, height
+        std::vector<std::pair<uint32_t, uint32_t>> dirSize;
+
+        // dirOffsets[D][F].first  = direction D, frame F, offset X
+        // dirOffsets[D][F].second = direction D, frame F, offset Y
+        std::vector<PngOffsets> dirOffsets;
+
+        uint8_t dirIdx = 0;
+        for( const auto& dir : data.Frm.directions() )
+        {
+            logVerbose << "direction " + std::to_string( dirIdx ) << 1;
+
+            uint32_t   dirWidth = 0, dirHeight = 0;
+            PngOffsets offsets = ConvertOffsets( dir.frames(), dirWidth, dirHeight, logVerbose );
+
+            dirSize.emplace_back( dirWidth, dirHeight );
+            dirOffsets.emplace_back( offsets );
+
+            dirIdx++;
+            logVerbose << -1;
+        }
+
+        // find .png image size
+
+        for( uint8_t leftIdx = DIR_NW, rightIdx = DIR_NE; rightIdx <= DIR_SE; leftIdx--, rightIdx++ )
+        {
+            logVerbose << "dirSize " + std::to_string( leftIdx ) + ":" + std::to_string( dirSize.at( leftIdx ).first ) + "," + std::to_string( dirSize.at( leftIdx ).second ) + " " + std::to_string( rightIdx ) + ":" + std::to_string( dirSize.at( rightIdx ).first ) + "," + std::to_string( dirSize.at( rightIdx ).second );
+
+            pngWidth = std::max( pngWidth, dirSize.at( leftIdx ).first + dirSize.at( rightIdx ).first );
+            pngHeight += std::max( dirSize.at( leftIdx ).second, dirSize.at( rightIdx ).second );
+            pngCenterX = std::max( pngCenterX, dirSize.at( leftIdx ).first );
+        }
+
+        // apply spacing to .png image size
+
+        pngWidth += pngSpacing;
+        pngHeight += pngSpacing * 2;
+        pngCenterX += pngSpacing / 2;
+
+        logVerbose << "write png = " + pngName + " = " + std::to_string( pngWidth ) + "x" + std::to_string( pngHeight );
+        PngWriter png( pngName );
+
+        png.writeAnimHeader( pngWidth, pngHeight, data.Frm.framesPerDirection() + ( firstIsAnim ? 0 : 1 ), 0, !firstIsAnim );
+
+        // TODO defaultImage
+        if( !firstIsAnim )
+        {
+            PngImage defaultImage( pngWidth, pngHeight );
+            png.writeAnimFrame( defaultImage, 0, 0, 0, 0, 0, 0 );
+        }
+
+        //
+
+        for( uint16_t frameIdx = 0, frameMax = data.Frm.framesPerDirection(); frameIdx < frameMax; frameIdx++ )
+        {
+            logVerbose << "frame " + std::to_string( frameIdx ) << 1;
+            PngImage image( pngWidth, pngHeight );
+
+            for( uint8_t dirIdx = 0, dirMax = data.Frm.directions().size(); dirIdx < dirMax; dirIdx++ )
+            {
+                logVerbose << "direction " + std::to_string( dirIdx ) << 1;
+
+                uint32_t pngX = 0, pngY = 0, pngRow = 0;
+
+                const Falltergeist::Format::Frm::Frame& frame = data.Frm.directions().at( dirIdx ).frames().at( frameIdx );
+
+                if( dirIdx <= DIR_SE )
+                {
+                    // move *E frames to right column
+
+                    pngX   = pngCenterX + pngSpacing / 2;
+                    pngRow = dirIdx;
+                }
+                else
+                {
+                    // align *W frames to right
+
+                    pngX   = pngCenterX - pngSpacing / 2 - dirSize.at( dirIdx ).first;
+                    pngRow = DIR_NW - dirIdx;
+                }
+                logVerbose << "pngRow = " + std::to_string( pngRow );
+
+                // align frames to bottom
+
+                logVerbose << "pngCurrDirs = " + std::to_string( dirIdx ) + "," + std::to_string( std::abs( DIR_NW - dirIdx ) );
+                pngY += std::max( dirSize.at( dirIdx ).second, dirSize.at( std::abs( DIR_NW - dirIdx ) ).second ) - dirSize.at( dirIdx ).second;
+
+                // apply vertical spacing (except NE/NW)
+
+                pngY += pngSpacing * pngRow;
+
+                // move frames to their rows (except NE/NW)
+
+                while( pngRow )
+                {
+                    logVerbose << "pngPrevDirs = " + std::to_string( DIR_MAX - pngRow ) + "," + std::to_string( pngRow - 1 );
+                    pngY += std::max( dirSize.at( DIR_MAX - pngRow ).second, dirSize.at( pngRow - 1 ).second );
+                    pngRow--;
+                }
+
+                logVerbose << "pngX = " + std::to_string( pngX );
+                logVerbose << "pngY = " + std::to_string( pngY );
+
+                DrawFrame( data, frame, image, pngX + dirOffsets.at( dirIdx ).at( frameIdx ).first, pngY + dirOffsets.at( dirIdx ).at( frameIdx ).second );
+                logVerbose << -1;
+            }
+
+            png.writeAnimFrame( image,
+                                0, 0, // offsets
+                                0, data.Frm.framesPerSecond() / 2,
+                                PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
+            logVerbose << -1;
+        }
+
+        png.writeAnimEnd();
+    }
+
+    //
+    // used by main application
+    //
+
     std::unordered_map<std::string, PngGeneratorFunc> Generator;
 
     void InitPngGenerators()
     {
-        Generator["legacy"] = &GeneratorLegacy;
-        Generator["apng"]   = &GeneratorAPNG;
+        Generator["legacy"]      = &GeneratorLegacy;
+        Generator["anim"]        = &GeneratorAnim;
+        Generator["anim-packed"] = &GeneratorAnimPacked;
     }
 }

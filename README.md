@@ -6,18 +6,25 @@ Fallout .frm to .png converter.
 Usage
 =====
 
-```bash
-frm2png PATH_TO_FILE.frm
 ```
+  frm2png [--help|--version]
+  frm2png ([-p <PAL>] | [-P <name>]) [-g <name>] [-o <PNG>] [-V] <filename.frm>
 
-Converted file will be saved as PATH_TO_FILE.png
+General options
+  --help, -h                  show help summary
+  --version, -v               show program version
 
-```bash
-frm2png --generator apng PATH_TO_FILE.frm
+Input options
+  -p, --pal <PAL>             Use specified PAL file
+  -P, --palette <name>        Use embedded palette
+
+Output options
+  -g, --generator <name>      generator
+  -o, --output <PNG>          output filename
+
+Misc options
+  -V, --verbose               prints various debug messages
 ```
-
-Converted file will be saved as PATH_TO_FILE_0.png, PATH_TO_FILE_1.png, ..., PATH_TO_FILE_5.png
-
 
 Compilation
 ===========
