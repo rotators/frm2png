@@ -53,12 +53,12 @@ namespace frm2png
     //
 
     static constexpr uint8_t DIR_NE  = 0;
-    static constexpr uint8_t DIR_E   = 1;
     static constexpr uint8_t DIR_SE  = 2;
-    static constexpr uint8_t DIR_SW  = 3;
-    static constexpr uint8_t DIR_W   = 4;
     static constexpr uint8_t DIR_NW  = 5;
     static constexpr uint8_t DIR_MAX = 6;
+    // static constexpr uint8_t DIR_E  = 1;
+    // static constexpr uint8_t DIR_SW = 3;
+    // static constexpr uint8_t DIR_W  = 4;
 
     typedef std::vector<std::pair<int32_t, int32_t>> PngOffsets;
 
