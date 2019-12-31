@@ -60,8 +60,8 @@ namespace frm2png
 
     void PngImage::setPixel( uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha /* = 255 */ )
     {
-        if( x > _width || y > _height )
-            throw std::runtime_error( "PngImage::setPixel() - Invalid position " + std::to_string( x ) + "," + std::to_string( y ) );
+        if( x >= _width || y >= _height )
+            throw std::runtime_error( "PngImage::setPixel() - Invalid position " + std::to_string( x ) + "," + std::to_string( y ) + " : " + std::to_string( _width ) + "," + std::to_string( _height ) );
 
         _rows[y][x * 4]     = r;
         _rows[y][x * 4 + 1] = g;

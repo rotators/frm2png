@@ -1,7 +1,31 @@
+/*
+ * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #pragma once
 
 #include <cstdint>
 #include <vector>
+
 #include "../Frm/Frame.h"
 
 namespace Falltergeist
@@ -12,34 +36,36 @@ namespace Falltergeist
         {
             class Direction
             {
-                public:
-                    Direction() = default;
-                    Direction(Direction&&) = default;
-                    Direction(const Direction&) = delete;
-                    Direction& operator= (const Direction&) = delete;
-                    Direction& operator= (Direction&&) = default;
-                    ~Direction() = default;
+            protected:
+                std::vector<Frame> _Frames;
 
-                    int16_t shiftX() const;
-                    void setShiftX(int16_t value);
+            public:
+                int16_t  ShiftX     = 0;
+                int16_t  ShiftY     = 0;
+                uint32_t DataOffset = 0;
+                uint8_t  Index      = 0; // helps in range-based for() loops, it is NOT directory id
 
-                    int16_t shiftY() const;
-                    void setShiftY(int16_t value);
+            public:
+                Direction()                   = default;
+                Direction( Direction&& )      = default;
+                Direction( const Direction& ) = delete;
+                Direction& operator=( const Direction& ) = delete;
+                Direction& operator=( Direction&& ) = default;
+                ~Direction()                        = default;
 
-                    uint32_t dataOffset() const;
-                    void setDataOffset(uint32_t value);
+            public:
+                const Frame& GetFrame( uint16_t frame ) const;
 
-                    uint16_t maxFrameWidth() const;
-                    uint16_t maxFrameHeight() const;
+                std::vector<Frame>&       Frames();
+                const std::vector<Frame>& Frames() const;
 
-                    std::vector<Frame>& frames();
-                    const std::vector<Frame>& frames() const;
+                inline uint16_t FramesSize() const
+                {
+                    return static_cast<uint16_t>( _Frames.size() );
+                }
 
-                protected:
-                    int16_t _shiftX = 0;
-                    int16_t _shiftY = 0;
-                    uint32_t _dataOffset = 0;
-                    std::vector<Frame> _frames;
+                uint16_t MaxFrameWidth() const;
+                uint16_t MaxFrameHeight() const;
             };
         }
     }

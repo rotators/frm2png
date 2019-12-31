@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -6,52 +29,42 @@
 #include "../Dat/Item.h"
 #include "../Dat/Stream.h"
 #include "../Frm/Direction.h"
-#include "../Pal/File.h"
+#include "../Frm/Frame.h"
 
 namespace Falltergeist
 {
     namespace Format
     {
-        namespace Dat
-        {
-            class Stream;
-        }
-        namespace Pal
-        {
-            class File;
-        }
         namespace Frm
         {
             class Direction;
 
             class File : public Dat::Item
             {
-                public:
-                    File(Dat::Stream&& stream);
+            protected:
+                std::vector<Direction> _Directions;
 
-                    uint32_t version() const;
-                    uint16_t framesPerSecond() const;
-                    uint16_t framesPerDirection() const;
-                    uint16_t actionFrame() const;
+            public:
+                uint32_t Version            = 0;
+                uint16_t FramesPerSecond    = 0;
+                uint16_t FramesPerDirection = 0;
+                uint16_t ActionFrame        = 0;
 
-                    uint16_t maxFrameWidth() const;
-                    uint16_t maxFrameHeight() const;
+            public:
+                File( Dat::Stream&& stream );
 
-                    int16_t offsetX(unsigned int direction = 0, unsigned int frame = 0) const;
-                    int16_t offsetY(unsigned int direction = 0, unsigned int frame = 0) const;
+            public:
+                const Frame& GetFrame( uint8_t dir, uint16_t frame ) const;
 
-                    const std::vector<Direction>& directions() const;
+                uint16_t MaxFrameWidth() const;
+                uint16_t MaxFrameHeight() const;
 
-                protected:
-                    std::vector<uint32_t> _rgba;
-                    uint32_t _version = 0;
-                    uint16_t _framesPerSecond = 0;
-                    uint16_t _framesPerDirection = 0;
-                    uint16_t _actionFrame = 0;
-                    bool _animatedPalette = false;
+                const std::vector<Direction>& Directions() const;
 
-                    std::vector<Direction> _directions;
-                    std::vector<bool> _mask;
+                inline uint8_t DirectionsSize() const
+                {
+                    return static_cast<uint8_t>( _Directions.size() );
+                }
             };
         }
     }

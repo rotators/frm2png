@@ -40,7 +40,9 @@ function( frm2png_target target )
 	other_target( ${target} )
 
 	if( UNIX )
-		set( CMAKE_BUILD_TYPE RelWithDebInfo )
+		if( EBUG ) # as in: cmake -DEBUG=1 Source/
+			compiler_flag( "compile" ${target} -g COMPILER_FLAG_G )
+		endif()
 
 		compiler_flag( "compile" ${target} -Wall      COMPILER_FLAG_WALL )
 		compiler_flag( "compile" ${target} -Werror    COMPILER_FLAG_WERROR )
@@ -53,7 +55,6 @@ function( frm2png_target target )
 		compiler_flag( "link" ${target} -static-libstdc++ COMPILER_FLAG_STATIC_LIBSTDCPP )
 	endif()
 endfunction()
-
 
 ##
 ## zlib

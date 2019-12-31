@@ -1,5 +1,32 @@
+/*
+ * Copyright (c) 2015-2018 Falltergeist developers
+ * Copyright (c) 2019 Rotators
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #include <algorithm>
+#include <stdexcept>
+#include <string>
+
 #include "../Frm/Direction.h"
+#include "../Frm/Frame.h"
 
 namespace Falltergeist
 {
@@ -7,60 +34,38 @@ namespace Falltergeist
     {
         namespace Frm
         {
-            int16_t Direction::shiftX() const
+            const Frame& Direction::GetFrame( uint16_t frame ) const
             {
-                return _shiftX;
+                if( frame >= _Frames.size() )
+                    throw std::runtime_error( "Falltergeist::Format::Frm::Direction::GetFrame() - invalid frame '" + std::to_string( frame ) + "'" );
+
+                return _Frames.at( frame );
             }
 
-            void Direction::setShiftX(int16_t value)
+            std::vector<Frame>& Direction::Frames()
             {
-                _shiftX = value;
+                return _Frames;
             }
 
-            int16_t Direction::shiftY() const
+            const std::vector<Frame>& Direction::Frames() const
             {
-                return _shiftY;
+                return _Frames;
             }
 
-            void Direction::setShiftY(int16_t value)
+            uint16_t Direction::MaxFrameWidth() const
             {
-                _shiftY = value;
+                return std::max_element( _Frames.begin(), _Frames.end(), []( const Frame& a, const Frame& b ) {
+                           return a.Width < b.Width;
+                       } )
+                    ->Width;
             }
 
-            uint32_t Direction::dataOffset() const
+            uint16_t Direction::MaxFrameHeight() const
             {
-                return _dataOffset;
-            }
-
-            uint16_t Direction::maxFrameWidth() const
-            {
-                return std::max_element( _frames.begin(), _frames.end(), []( const Frame& a, const Frame& b )
-                {
-                    return a.width() < b.width();
-                })->width();
-            }
-
-            uint16_t Direction::maxFrameHeight() const
-            {
-                return std::max_element( _frames.begin(), _frames.end(), []( const Frame& a, const Frame& b )
-                {
-                    return a.height() < b.height();
-                })->height();
-            }
-
-            void Direction::setDataOffset(uint32_t value)
-            {
-                _dataOffset = value;
-            }
-
-            std::vector<Frame>& Direction::frames()
-            {
-                return _frames;
-            }
-
-            const std::vector<Frame>& Direction::frames() const
-            {
-                return _frames;
+                return std::max_element( _Frames.begin(), _Frames.end(), []( const Frame& a, const Frame& b ) {
+                           return a.Height < b.Height;
+                       } )
+                    ->Height;
             }
         }
     }

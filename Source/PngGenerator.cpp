@@ -60,6 +60,7 @@ namespace frm2png
     // static constexpr uint8_t DIR_SW = 3;
     // static constexpr uint8_t DIR_W  = 4;
 
+    // should be <uint16,uint16> but it's used for temporary values during .frm -> .png offsets conversion
     typedef std::vector<std::pair<int32_t, int32_t>> PngOffsets;
 
     // converts .frm frames offsets to .png frames offsets
@@ -74,27 +75,28 @@ namespace frm2png
         // result[F].second = frame F, offset Y
         std::vector<std::pair<int32_t, int32_t>> result;
 
-        uint16_t frameIdx = 0;
         for( const auto& frame : frames )
         {
-            if( !frameIdx )
+            if( !frame.Index )
             {
-                // save first .frm frame spot position
+                // cache first .frm frame spot position
 
-                spotX = frame.width() / 2;
-                spotY = frame.height();
+                spotX = frame.Width / 2;
+                spotY = frame.Height;
 
                 result.emplace_back( 0, 0 );
             }
             else
             {
                 // apply .frm offsets to cached spot
-                spotX += frame.offsetX();
-                spotY += frame.offsetY();
+
+                spotX += frame.OffsetX;
+                spotY += frame.OffsetY;
 
                 // convert .frm spot to .png offset
+                // requires further processing, as results are negative for many directions at this step
 
-                result.emplace_back( spotX - frame.width() / 2, spotY - frame.height() );
+                result.emplace_back( spotX - frame.Width / 2, spotY - frame.Height );
 
                 // shift position of first frame, if needed
 
@@ -105,27 +107,30 @@ namespace frm2png
                     result.front().second = std::max( result.front().second, -result.back().second );
             }
 
-            logVerbose << "offset frame:" + std::to_string( frameIdx ) + " " + std::to_string( frame.offsetX() ) + "," + std::to_string( frame.offsetY() ) + " -> " + std::to_string( result.back().first ) + "," + std::to_string( result.back().second );
-            frameIdx++;
+            logVerbose << "offset frame:" + std::to_string( frame.Index ) + " " + std::to_string( frame.OffsetX ) + "," + std::to_string( frame.OffsetY ) + " -> " + std::to_string( result.back().first ) + "," + std::to_string( result.back().second );
         }
 
         // finish conversion, find .png image size
 
-        frameIdx = minWidth = minHeight = 0;
-        for( auto& offset : result )
+        minWidth = minHeight = 0;
+        for( const auto& frame : frames )
         {
             // apply first frame offset to other frames
 
-            if( frameIdx )
+            auto& offset = result[frame.Index];
+
+            if( frame.Index )
             {
-                offset.first += result.front().first;
-                offset.second += result.front().second;
+                // logVerbose << "offset ? frame:" + std::to_string( frame.Index ) + " " + std::to_string( offset.first ) + "," + std::to_string( offset.second ) + " + " + std::to_string( result.front().first ) + "," + std::to_string( result.front().second );
+
+                offset.first += result.front().first;   // X
+                offset.second += result.front().second; // Y
             }
 
-            minWidth  = std::max<uint32_t>( minWidth, offset.first + frames.at( frameIdx ).width() );
-            minHeight = std::max<uint32_t>( minHeight, offset.second + frames.at( frameIdx ).height() );
+            // logVerbose << "offset ! frame:" + std::to_string( frame.Index ) + " " + std::to_string( offset.first ) + "," + std::to_string( offset.second );
 
-            frameIdx++;
+            minWidth  = std::max<uint32_t>( minWidth, offset.first + frame.Width );
+            minHeight = std::max<uint32_t>( minHeight, offset.second + frame.Height );
         }
 
         return result;
@@ -134,11 +139,11 @@ namespace frm2png
     // copy pixels from .frm to .png, starting at given position; adjusts RGB
     static void DrawFrame( const PngGeneratorData& data, const Falltergeist::Format::Frm::Frame& frame, PngImage& image, const uint32_t pngX = 0, const uint32_t pngY = 0 )
     {
-        for( uint16_t y = 0, h = frame.height(); y < h; y++ )
+        for( uint16_t y = 0, h = frame.Height; y < h; y++ )
         {
-            for( uint16_t x = 0, w = frame.width(); x < w; x++ )
+            for( uint16_t x = 0, w = frame.Width; x < w; x++ )
             {
-                const Falltergeist::Format::Pal::Color* color = data.Pal.color( frame.index( x, y ) );
+                const Falltergeist::Format::Pal::Color* color = data.Pal.color( frame.ColorIndex( x, y ) );
                 image.setPixel( pngX + x, pngY + y, color->red() * data.RgbMultiplier, color->green() * data.RgbMultiplier, color->blue() * data.RgbMultiplier, color->alpha() );
             }
         }
@@ -152,24 +157,22 @@ namespace frm2png
     // all frames are drawn as single static image; each direction draws frames in its own row, from left to right
     static void GeneratorLegacy( const PngGeneratorData& data, Logging& logVerbose )
     {
-        uint16_t maxWidth  = data.Frm.maxFrameWidth();
-        uint16_t maxHeight = data.Frm.maxFrameHeight();
+        uint16_t maxWidth  = data.Frm.MaxFrameWidth();
+        uint16_t maxHeight = data.Frm.MaxFrameHeight();
 
-        PngImage image( maxWidth * data.Frm.framesPerDirection(), maxHeight * static_cast<uint8_t>( data.Frm.directions().size() ) );
+        PngImage image( maxWidth * data.Frm.FramesPerDirection, maxHeight * data.Frm.DirectionsSize() );
 
-        uint8_t dirIdx = 0;
-        for( const auto& dir : data.Frm.directions() )
+        for( const auto& dir : data.Frm.Directions() )
         {
             uint16_t frameIdx = 0;
-            for( const auto& frame : dir.frames() )
+            for( const auto& frame : dir.Frames() )
             {
                 const uint32_t pngX = maxWidth * frameIdx;
-                const uint32_t pngY = maxHeight * dirIdx;
+                const uint32_t pngY = maxHeight * dir.Index;
 
                 DrawFrame( data, frame, image, pngX, pngY );
                 frameIdx++;
             }
-            dirIdx++;
         }
 
         logVerbose << "write png = " + data.PngPath + data.PngBasename + data.PngExtension + " = " + std::to_string( image.width() ) + "x" + std::to_string( image.height() );
@@ -180,57 +183,56 @@ namespace frm2png
     // create multiple animated .png files (one per direction)
     static void GeneratorAnim( const PngGeneratorData& data, Logging& logVerbose )
     {
-        uint8_t dirIdx = 0;
-        for( const auto& dir : data.Frm.directions() )
+        for( const auto& dir : data.Frm.Directions() )
         {
-            const std::string pngName  = data.PngPath + data.PngBasename + "_" + std::to_string( dirIdx ) + data.PngExtension;
+            const std::string pngName  = data.PngPath + data.PngBasename + "_" + std::to_string( dir.Index ) + data.PngExtension;
             uint32_t          pngWidth = 0, pngHeight = 0;
 
             // TODO support acTL + fcTL + IDAT variant
             static constexpr bool firstIsAnim = false;
 
-            logVerbose << "direction " + std::to_string( dirIdx ) << 1;
-            PngOffsets offsets = ConvertOffsets( dir.frames(), pngWidth, pngHeight, logVerbose );
+            logVerbose << "direction " + std::to_string( dir.Index ) << 1;
+            PngOffsets offsets = ConvertOffsets( dir.Frames(), pngWidth, pngHeight, logVerbose );
 
             logVerbose << "write png = " + pngName + " = " + std::to_string( pngWidth ) + "x" + std::to_string( pngHeight ) << 1;
             PngWriter png( pngName );
 
-            png.writeAnimHeader( pngWidth, pngHeight, static_cast<uint16_t>( dir.frames().size() ) + ( firstIsAnim ? 0 : 1 ), 0, !firstIsAnim );
+            png.writeAnimHeader( pngWidth, pngHeight, dir.FramesSize() + ( firstIsAnim ? 0 : 1 ), 0, !firstIsAnim );
 
             if( !firstIsAnim )
             {
                 // if first image is not supposed to be part of animation, copy of first frame is added and moved to center
                 // software supporting APNG will ignore it, anything else will use that as image to display
 
-                auto&    frame = dir.frames().front();
+                auto&    frame = dir.Frames().front();
                 PngImage defaultImage( pngWidth, pngHeight );
 
                 // draw .png frame
 
-                const uint32_t pngX = pngWidth / 2 - frame.width() / 2;
-                const uint32_t pngY = pngHeight / 2 - frame.height() / 2;
+                const uint32_t pngX = pngWidth / 2 - frame.Width / 2;
+                const uint32_t pngY = pngHeight / 2 - frame.Height / 2;
 
                 DrawFrame( data, frame, defaultImage, pngX, pngY );
 
-                png.writeAnimFrame( defaultImage, 0, 0, 0, 0, 0, 0 );
+                png.writeAnimFrame( defaultImage,
+                                    0, 0, // offsets
+                                    0, 0, // delay
+                                    0, 0  // dispose, blend
+                );
             }
 
             // draw .png frames
-            uint16_t frameIdx = 0;
-            for( const auto& frame : dir.frames() )
+            for( const auto& frame : dir.Frames() )
             {
-                logVerbose << "draw frame:" + std::to_string( frameIdx ) + " @ " + std::to_string( offsets.at( frameIdx ).first ) + "," + std::to_string( offsets.at( frameIdx ).second ) + " -> " + std::to_string( frame.width() ) + "x" + std::to_string( frame.height() );
+                logVerbose << "draw frame:" + std::to_string( frame.Index ) + " @ " + std::to_string( offsets[frame.Index].first ) + "," + std::to_string( offsets[frame.Index].second ) + " -> " + std::to_string( frame.Width ) + "x" + std::to_string( frame.Height );
 
-                PngImage image( frame.width(), frame.height() );
+                PngImage image( frame.Width, frame.Height );
                 DrawFrame( data, frame, image );
 
-                png.writeAnimFrame( image, offsets.at( frameIdx ).first, offsets.at( frameIdx ).second, 0, data.Frm.framesPerSecond() / 2, PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
-
-                frameIdx++;
+                png.writeAnimFrame( image, offsets[frame.Index].first, offsets[frame.Index].second, 0, data.Frm.FramesPerSecond / 2, PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
             }
 
             png.writeAnimEnd();
-            dirIdx++;
             logVerbose << -2;
         }
     }
@@ -239,15 +241,15 @@ namespace frm2png
     static void GeneratorAnimPacked( const PngGeneratorData& data, Logging& logVerbose )
     {
         const std::string pngName  = data.PngPath + data.PngBasename + data.PngExtension;
-        uint32_t          pngWidth = 0, pngHeight = 0, pngCenterX = 0;
+        uint32_t          pngWidth = 0, pngWidthLeft = 0, pngWidthRight = 0, pngHeight = 0, pngRightX = 0;
         constexpr uint8_t pngSpacing = 4;
 
         // TODO support acTL + fcTL + IDAT variant
         static constexpr bool firstIsAnim = false;
 
         // TODO? fallback to 'anim' generator?
-        if( data.Frm.directions().size() != 6 )
-            throw std::runtime_error( "GeneratorAnimPacked() - .frm file must contain frames for exactly 6 directions" );
+        if( data.Frm.DirectionsSize() != DIR_MAX )
+            throw std::runtime_error( "GeneratorAnimPacked() - .frm file must contain frames for exactly " + std::to_string( DIR_MAX ) + " directions" );
 
         // cache size/offsets of all directions
 
@@ -259,18 +261,16 @@ namespace frm2png
         // dirOffsets[D][F].second = direction D, frame F, offset Y
         std::vector<PngOffsets> dirOffsets;
 
-        uint8_t dirIdx = 0;
-        for( const auto& dir : data.Frm.directions() )
+        for( const auto& dir : data.Frm.Directions() )
         {
-            logVerbose << "direction " + std::to_string( dirIdx ) << 1;
+            logVerbose << "direction " + std::to_string( dir.Index ) << 1;
 
             uint32_t   dirWidth = 0, dirHeight = 0;
-            PngOffsets offsets = ConvertOffsets( dir.frames(), dirWidth, dirHeight, logVerbose );
+            PngOffsets offsets = ConvertOffsets( dir.Frames(), dirWidth, dirHeight, logVerbose );
 
             dirSize.emplace_back( dirWidth, dirHeight );
             dirOffsets.emplace_back( offsets );
 
-            dirIdx++;
             logVerbose << -1;
         }
 
@@ -278,23 +278,20 @@ namespace frm2png
 
         for( uint8_t leftIdx = DIR_NW, rightIdx = DIR_NE; rightIdx <= DIR_SE; leftIdx--, rightIdx++ )
         {
-            logVerbose << "dirSize " + std::to_string( leftIdx ) + ":" + std::to_string( dirSize.at( leftIdx ).first ) + "," + std::to_string( dirSize.at( leftIdx ).second ) + " " + std::to_string( rightIdx ) + ":" + std::to_string( dirSize.at( rightIdx ).first ) + "," + std::to_string( dirSize.at( rightIdx ).second );
+            logVerbose << "dirSize " + std::to_string( leftIdx ) + ":" + std::to_string( dirSize[leftIdx].first ) + "," + std::to_string( dirSize[leftIdx].second ) + " " + std::to_string( rightIdx ) + ":" + std::to_string( dirSize[rightIdx].first ) + "," + std::to_string( dirSize[rightIdx].second );
 
-            pngWidth = std::max( pngWidth, dirSize.at( leftIdx ).first + dirSize.at( rightIdx ).first );
-            pngHeight += std::max( dirSize.at( leftIdx ).second, dirSize.at( rightIdx ).second );
-            pngCenterX = std::max( pngCenterX, dirSize.at( leftIdx ).first );
+            pngWidthLeft  = std::max( pngWidthLeft, dirSize[leftIdx].first );
+            pngWidthRight = std::max( pngWidthLeft, dirSize[rightIdx].first );
+
+            pngWidth = std::max( pngWidth, pngWidthLeft + pngSpacing + pngWidthRight );
+            pngHeight += ( rightIdx > DIR_NE ? pngSpacing : 0 ) + std::max( dirSize[leftIdx].second, dirSize[rightIdx].second );
+            pngRightX = std::max( pngRightX, dirSize[leftIdx].first + pngSpacing );
         }
-
-        // apply spacing to .png image size
-
-        pngWidth += pngSpacing;
-        pngHeight += pngSpacing * 2;
-        pngCenterX += pngSpacing / 2;
 
         logVerbose << "write png = " + pngName + " = " + std::to_string( pngWidth ) + "x" + std::to_string( pngHeight );
         PngWriter png( pngName );
 
-        png.writeAnimHeader( pngWidth, pngHeight, data.Frm.framesPerDirection() + ( firstIsAnim ? 0 : 1 ), 0, !firstIsAnim );
+        png.writeAnimHeader( pngWidth, pngHeight, data.Frm.FramesPerDirection + ( firstIsAnim ? 0 : 1 ), 0, !firstIsAnim );
 
         // TODO defaultImage
         if( !firstIsAnim )
@@ -305,39 +302,31 @@ namespace frm2png
 
         //
 
-        for( uint16_t frameIdx = 0, frameMax = data.Frm.framesPerDirection(); frameIdx < frameMax; frameIdx++ )
+        for( uint16_t frameIdx = 0; frameIdx < data.Frm.FramesPerDirection; frameIdx++ )
         {
             logVerbose << "frame " + std::to_string( frameIdx ) << 1;
             PngImage image( pngWidth, pngHeight );
 
-            for( uint8_t dirIdx = 0, dirMax = data.Frm.directions().size(); dirIdx < dirMax; dirIdx++ )
+            for( const auto& dir : data.Frm.Directions() )
             {
-                logVerbose << "direction " + std::to_string( dirIdx ) << 1;
+                logVerbose << "direction " + std::to_string( dir.Index ) << 1;
 
-                uint32_t pngX = 0, pngY = 0, pngRow = 0;
-
-                const Falltergeist::Format::Frm::Frame& frame = data.Frm.directions().at( dirIdx ).frames().at( frameIdx );
-
-                if( dirIdx <= DIR_SE )
-                {
-                    // move *E frames to right column
-
-                    pngX   = pngCenterX + pngSpacing / 2;
-                    pngRow = dirIdx;
-                }
-                else
-                {
-                    // align *W frames to right
-
-                    pngX   = pngCenterX - pngSpacing / 2 - dirSize.at( dirIdx ).first;
-                    pngRow = DIR_NW - dirIdx;
-                }
+                uint32_t pngX = 0, pngY = 0, pngRow = ( dir.Index <= DIR_SE ? dir.Index : DIR_NW - dir.Index );
                 logVerbose << "pngRow = " + std::to_string( pngRow );
+
+                const Falltergeist::Format::Frm::Frame& frame = data.Frm.GetFrame( dir.Index, frameIdx );
+
+                // move *E frames to right column
+                if( dir.Index <= DIR_SE )
+                    pngX = pngRightX;
+                // align *W frames to right
+                else
+                    pngX = pngRightX - pngSpacing - dirSize[dir.Index].first;
 
                 // align frames to bottom
 
-                logVerbose << "pngCurrDirs = " + std::to_string( dirIdx ) + "," + std::to_string( std::abs( DIR_NW - dirIdx ) );
-                pngY += std::max( dirSize.at( dirIdx ).second, dirSize.at( std::abs( DIR_NW - dirIdx ) ).second ) - dirSize.at( dirIdx ).second;
+                logVerbose << "pngCurrDirs = " + std::to_string( dir.Index ) + "," + std::to_string( std::abs( DIR_NW - dir.Index ) );
+                pngY += std::max( dirSize[dir.Index].second, dirSize[std::abs( DIR_NW - dir.Index )].second ) - dirSize[dir.Index].second;
 
                 // apply vertical spacing (except NE/NW)
 
@@ -348,20 +337,20 @@ namespace frm2png
                 while( pngRow )
                 {
                     logVerbose << "pngPrevDirs = " + std::to_string( DIR_MAX - pngRow ) + "," + std::to_string( pngRow - 1 );
-                    pngY += std::max( dirSize.at( DIR_MAX - pngRow ).second, dirSize.at( pngRow - 1 ).second );
+                    pngY += std::max( dirSize[DIR_MAX - pngRow].second, dirSize[pngRow - 1].second );
                     pngRow--;
                 }
 
                 logVerbose << "pngX = " + std::to_string( pngX );
                 logVerbose << "pngY = " + std::to_string( pngY );
 
-                DrawFrame( data, frame, image, pngX + dirOffsets.at( dirIdx ).at( frameIdx ).first, pngY + dirOffsets.at( dirIdx ).at( frameIdx ).second );
+                DrawFrame( data, frame, image, pngX + dirOffsets[dir.Index][frame.Index].first, pngY + dirOffsets[dir.Index][frame.Index].second );
                 logVerbose << -1;
             }
 
             png.writeAnimFrame( image,
                                 0, 0, // offsets
-                                0, data.Frm.framesPerSecond() / 2,
+                                0, data.Frm.FramesPerSecond / 2,
                                 PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
             logVerbose << -1;
         }

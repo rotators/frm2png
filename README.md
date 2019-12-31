@@ -8,7 +8,7 @@ Usage
 
 ```
   frm2png [--help|--version]
-  frm2png ([-p <PAL>] | [-P <name>]) [-g <name>] [-o <PNG>] [-V] <filename.frm>
+  frm2png ([-p <PAL>] | [-P <name>]) [-g <name>] [-o <PNG>] [-V] <filename.frm>...
 
 General options
   --help, -h                  show help summary

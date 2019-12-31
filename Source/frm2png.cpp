@@ -51,10 +51,10 @@ struct Options
     bool Version = false;
 
     // input
-    std::string DatFile;
-    std::string PalFile;
-    std::string PalName = "default";
-    std::string FrmFile;
+    std::string              DatFile;
+    std::string              PalFile;
+    std::string              PalName = "default";
+    std::vector<std::string> FrmFile;
 
     // output
     std::string Generator = "auto";
@@ -101,7 +101,7 @@ struct Options
 
         // clang-format on
 
-        CommandLine = ( cmdInfo | ( cmdInput, cmdOutput, cmdMisc, clipp::value( "filename.frm", FrmFile ) ) );
+        CommandLine = ( cmdInfo | ( cmdInput, cmdOutput, cmdMisc, clipp::values( "filename.frm", FrmFile ) ) );
     }
 };
 
@@ -146,11 +146,11 @@ static void printFRM( const std::string& filename, Falltergeist::Format::Frm::Fi
 {
     std::cout << "=== FRM info ===" << std::endl;
     std::cout << "Filename ..............  " << filename << std::endl;
-    std::cout << "Version ................ " << frm.version() << std::endl;
-    std::cout << "Frames per second ...... " << frm.framesPerSecond() << std::endl;
-    std::cout << "Action frame ........... " << frm.actionFrame() << std::endl;
-    std::cout << "Directions ............. " << frm.directions().size() << std::endl;
-    std::cout << "Frames per direction ... " << frm.framesPerDirection() << std::endl;
+    std::cout << "Version ................ " << frm.Version << std::endl;
+    std::cout << "Frames per second ...... " << frm.FramesPerSecond << std::endl;
+    std::cout << "Action frame ........... " << frm.ActionFrame << std::endl;
+    std::cout << "Directions ............. " << std::to_string( frm.DirectionsSize() ) << std::endl;
+    std::cout << "Frames per direction ... " << frm.FramesPerDirection << std::endl;
 }
 
 // <- path/to/file.ext
@@ -233,6 +233,15 @@ int main( int argc, char** argv )
     {
         Logging verbose;
 
+        std::string frmFile;
+        for( const auto& frm : options.FrmFile )
+        {
+            if( !frmFile.empty() )
+                frmFile += ", ";
+
+            frmFile += frm;
+        }
+
         verbose.Enabled = options.Verbose;
         verbose << "command line" << 1
                 << "Help      = " + std::string( options.Help ? "true" : "false" )
@@ -241,7 +250,7 @@ int main( int argc, char** argv )
                 << "DatFile   = " + options.DatFile
                 << "PalFile   = " + options.PalFile
                 << "PalName   = " + options.PalName
-                << "FrmFile   = " + options.FrmFile
+                << "FrmFile   = " + frmFile
                 // output
                 << "Generator = " + options.Generator
                 << "PngFile   = " + options.PngFile
@@ -269,10 +278,8 @@ int main( int argc, char** argv )
         }
         logVerbose << -1;
 
-        // TODO for( const std::string& frmFile : options.FrmFiles )
+        for( const std::string& frmFile : options.FrmFile )
         {
-            const std::string frmFile = options.FrmFile;
-
             PngGeneratorData data( loadFile<Falltergeist::Format::Frm::File>( frmFile ), loadPal( options ) );
 
             printFRM( frmFile, data.Frm );
@@ -287,7 +294,7 @@ int main( int argc, char** argv )
             {
                 std::string frmPath, frmBasename, frmExtension;
 
-                splitFilename( options.FrmFile, frmPath, frmBasename, frmExtension );
+                splitFilename( frmFile, frmPath, frmBasename, frmExtension );
                 pngFull = frmPath + frmBasename + ".png";
             }
 
@@ -302,10 +309,13 @@ int main( int argc, char** argv )
             std::string generator = options.Generator;
             if( generator == "auto" )
             {
-                if( data.Frm.directions().size() == 1 )
-                    generator = "legacy";
-                //else if( data.Frm.framesPerDirection() == 1 )
-                //    generator = "png";
+                if( data.Frm.DirectionsSize() == 1 )
+                {
+                    if( data.Frm.FramesPerDirection == 1 )
+                        generator = "legacy";
+                    else
+                        generator = "anim";
+                }
                 else
                     generator = "anim";
 
