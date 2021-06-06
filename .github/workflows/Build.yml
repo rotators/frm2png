@@ -49,7 +49,7 @@ jobs:
               fi
            elif [ "$RUNNER_OS" == "Windows" ]; then
                 if   [ "${{ matrix.cfg.platform }}" == "x32" ]; then
-                     echo ""GHA_PLATFORM=-A Win32" >> $GITHUB_ENV
+                     echo "GHA_PLATFORM=-A Win32" >> $GITHUB_ENV
                 elif [ "${{ matrix.cfg.platform }}" == "x64" ]; then
                      echo "GHA_PLATFORM=-A x64" >> $GITHUB_ENV
                 else
