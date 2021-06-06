@@ -6,6 +6,13 @@ on:
   - '.github/workflows/Build.yml'
   - 'Source/**'
  pull_request:
+  paths:
+  - '.github/workflows/Build.yml'
+  - 'Source/**'
+
+defaults:
+ run:
+  shell: bash
 
 jobs:
 
@@ -28,10 +35,8 @@ jobs:
 
   - name: Clone
     uses: actions/checkout@v2
-
-  - name:  Clone submodules
-    run:   git submodule update --init
-    shell: bash
+    with:
+     submodules: recursive
 
   - name:  Configure
     run:   |
@@ -40,19 +45,18 @@ jobs:
               if [ "${{ matrix.cfg.platform }}" == "x32" ]; then
                  sudo apt update
                  sudo apt install -y gcc-multilib g++-multilib
-                 echo ::set-env name=GHA_TOOLCHAIN::-DCMAKE_TOOLCHAIN_FILE=$(pwd)/Source/CMake.Linux32
+                 echo "GHA_TOOLCHAIN=-DCMAKE_TOOLCHAIN_FILE=$(pwd)/Source/CMake.Linux32" >> $GITHUB_ENV
               fi
            elif [ "$RUNNER_OS" == "Windows" ]; then
                 if   [ "${{ matrix.cfg.platform }}" == "x32" ]; then
-                     echo ::set-env name=GHA_PLATFORM::-A Win32
+                     echo ""GHA_PLATFORM=-A Win32" >> $GITHUB_ENV
                 elif [ "${{ matrix.cfg.platform }}" == "x64" ]; then
-                     echo ::set-env name=GHA_PLATFORM::-A x64
+                     echo "GHA_PLATFORM=-A x64" >> $GITHUB_ENV
                 else
                      echo "[ERROR] Unknown platform ${{ matrix.cfg.platform }}"
                      exit 1
                 fi
            fi
-    shell: bash
 
   - name:  Build
     run:   |
@@ -60,7 +64,6 @@ jobs:
            mkdir Build && cd Build
            cmake $GHA_TOOLCHAIN $GHA_TOOLSET $GHA_PLATFORM ../Source
            cmake --build . --config Release
-    shell: bash
     env:
      CC:  ${{ matrix.cfg.cc }}
      CXX: ${{ matrix.cfg.cxx }}
@@ -72,4 +75,3 @@ jobs:
                file ${{ matrix.cfg.bin }}/$name
                ldd  ${{ matrix.cfg.bin }}/$name
            done
-    shell: bash

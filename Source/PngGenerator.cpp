@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Rotators
+ * Copyright (c) 2019-2021 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -149,6 +149,11 @@ namespace frm2png
         }
     }
 
+    static inline uint32_t GetDelayDen( const Falltergeist::Format::Frm::File& frm )
+    {
+        return 1000 / ( frm.FramesPerSecond ? frm.FramesPerSecond : 10 );
+    }
+
     //
     // generators
     //
@@ -229,7 +234,7 @@ namespace frm2png
                 PngImage image( frame.Width, frame.Height );
                 DrawFrame( data, frame, image );
 
-                png.writeAnimFrame( image, offsets[frame.Index].first, offsets[frame.Index].second, 0, data.Frm.FramesPerSecond / 2, PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
+                png.writeAnimFrame( image, offsets[frame.Index].first, offsets[frame.Index].second, 0, GetDelayDen( data.Frm ), PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
             }
 
             png.writeAnimEnd();
@@ -283,7 +288,7 @@ namespace frm2png
             pngWidthLeft  = std::max( pngWidthLeft, dirSize[leftIdx].first );
             pngWidthRight = std::max( pngWidthLeft, dirSize[rightIdx].first );
 
-            pngWidth = std::max( pngWidth, pngWidthLeft + pngSpacing + pngWidthRight );
+            pngWidth = std::max( pngWidth, pngWidthLeft + pngSpacing + pngWidthRight ) + 1;
             pngHeight += ( rightIdx > DIR_NE ? pngSpacing : 0 ) + std::max( dirSize[leftIdx].second, dirSize[rightIdx].second );
             pngRightX = std::max( pngRightX, dirSize[leftIdx].first + pngSpacing );
         }
@@ -341,8 +346,8 @@ namespace frm2png
                     pngRow--;
                 }
 
-                logVerbose << "pngX = " + std::to_string( pngX );
-                logVerbose << "pngY = " + std::to_string( pngY );
+                logVerbose << "pngX = " + std::to_string( pngX ) + " + " + std::to_string( dirOffsets[dir.Index][frame.Index].first );
+                logVerbose << "pngY = " + std::to_string( pngY ) + " + " + std::to_string( dirOffsets[dir.Index][frame.Index].second );
 
                 DrawFrame( data, frame, image, pngX + dirOffsets[dir.Index][frame.Index].first, pngY + dirOffsets[dir.Index][frame.Index].second );
                 logVerbose << -1;
@@ -350,7 +355,7 @@ namespace frm2png
 
             png.writeAnimFrame( image,
                                 0, 0, // offsets
-                                0, data.Frm.FramesPerSecond / 2,
+                                0, GetDelayDen( data.Frm ),
                                 PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
             logVerbose << -1;
         }

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2018 Falltergeist developers
- * Copyright (c) 2019 Rotators
+ * Copyright (c) 2019-2021 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -49,6 +49,7 @@ struct Options
 
     bool Help    = false;
     bool Version = false;
+    bool Info    = false;
 
     // input
     std::string              DatFile;
@@ -95,7 +96,7 @@ struct Options
         auto cmdMisc =
         (
             clipp::option( "-V", "--verbose" ).set( Verbose ).doc( "prints various debug messages" ),
-            clipp::option( "-X", "--clean" )
+            clipp::option( "-i", "--info" ).set( Info ).doc( "prints FRM info only (doesn't process files)" )
         )
         .doc( "Misc options" );
 
@@ -109,7 +110,7 @@ static void printVersion()
 {
     std::cout << "FRM to PNG converter v0.1.5r" << std::endl
               << "Copyright (c) 2015-2018 Falltergeist developers" << std::endl
-              << "Copyright (c) 2019 Rotators" << std::endl
+              << "Copyright (c) 2019-2021 Rotators" << std::endl
               << std::endl;
 }
 
@@ -255,6 +256,7 @@ int main( int argc, char** argv )
                 << "Generator = " + options.Generator
                 << "PngFile   = " + options.PngFile
                 // misc
+                << "Info      = " + std::string( options.Info ? "true" : "false" )
                 << "Verbose   = " + std::string( options.Verbose ? "true" : "false" )
                 << -1;
     }
@@ -278,11 +280,15 @@ int main( int argc, char** argv )
         }
         logVerbose << -1;
 
+        logVerbose << "begin frm loop" << 1;
         for( const std::string& frmFile : options.FrmFile )
         {
             PngGeneratorData data( loadFile<Falltergeist::Format::Frm::File>( frmFile ), loadPal( options ) );
 
             printFRM( frmFile, data.Frm );
+
+            if( options.Info )
+                continue;
 
             // split output filename into few parts; helps generators to modify filename provided by user
 
@@ -336,6 +342,8 @@ int main( int argc, char** argv )
             logVerbose << -1 << "end generator = " + generator;
 
         } // foreach .frm
+
+        logVerbose << -1 << "end frm loop";
     }
     catch( std::exception& e )
     {

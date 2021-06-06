@@ -66,10 +66,14 @@ get_property(DIR_ZLIB_BINARY TARGET zlibstatic PROPERTY BINARY_DIR)
 get_property(DIR_ZLIB_SOURCE TARGET zlibstatic PROPERTY SOURCE_DIR)
 other_target( zlibstatic )
 
+set_property( TARGET zlibstatic PROPERTY FOLDER "Libraries" )
+
 set( ZLIB_INCLUDE_DIR "${DIR_ZLIB_BINARY}" )
 add_custom_command( OUTPUT "${DIR_ZLIB_BINARY}/zlib.h" COMMAND ${CMAKE_COMMAND} -E copy_if_different "${DIR_ZLIB_SOURCE}/zlib.h" "${DIR_ZLIB_BINARY}/zlib.h" )
 add_custom_target( zlib_h ALL DEPENDS "${DIR_ZLIB_BINARY}/zlib.h" )
 add_dependencies( zlib_h zlibstatic )
+
+set_property( TARGET zlibstatic zlib_h PROPERTY FOLDER "Libraries" )
 
 ##
 ## libpng-apng
@@ -83,6 +87,8 @@ other_target( png_static )
 
 target_include_directories( png_static PRIVATE "${ZLIB_INCLUDE_DIR}" )
 add_dependencies( genfiles zlib_h )
+
+set_property( TARGET png_static genfiles PROPERTY FOLDER "Libraries" )
 
 ##
 ## libfalltergeist-mini
@@ -101,6 +107,8 @@ add_dependencies( falltergeist-mini zlib_h )
 message( STATUS "Configuring clipp..." )
 add_library( clipp INTERFACE )
 target_include_directories( clipp INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/clipp/include" )
+
+set_property( TARGET clipp PROPERTY FOLDER "Libraries" )
 
 ##
 ## frm2png
@@ -128,3 +136,13 @@ target_include_directories( frm2png PRIVATE "${DIR_LIBPNG_BINARY}" libfalltergei
 target_link_libraries( frm2png PRIVATE png_static falltergeist-mini clipp )
 
 frm2png_target( frm2png )
+
+##
+## IDE
+##
+
+set_property( GLOBAL PROPERTY USE_FOLDERS ON )
+set_property( GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake" )
+
+source_group( " "         REGULAR_EXPRESSION "\.([CcHh]|[CcHh][Pp][Pp])$" )
+source_group( "CMake"     REGULAR_EXPRESSION "[Cc][Mm][Aa][Kk][Ee]" )

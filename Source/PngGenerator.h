@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Rotators
+ * Copyright (c) 2019-2021 Rotators
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -42,7 +42,7 @@ namespace frm2png
         Falltergeist::Format::Frm::File Frm;
         Falltergeist::Format::Pal::File Pal;
 
-        uint8_t RgbMultiplier;
+        uint8_t RgbMultiplier = 0;
 
         std::string PngPath;
         std::string PngBasename;
