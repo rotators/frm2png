@@ -288,7 +288,7 @@ namespace frm2png
             pngWidthLeft  = std::max( pngWidthLeft, dirSize[leftIdx].first );
             pngWidthRight = std::max( pngWidthLeft, dirSize[rightIdx].first );
 
-            pngWidth = std::max( pngWidth, pngWidthLeft + pngSpacing + pngWidthRight ) + 1;
+            pngWidth = std::max( pngWidth, pngWidthLeft + pngSpacing + pngWidthRight ) + 2;
             pngHeight += ( rightIdx > DIR_NE ? pngSpacing : 0 ) + std::max( dirSize[leftIdx].second, dirSize[rightIdx].second );
             pngRightX = std::max( pngRightX, dirSize[leftIdx].first + pngSpacing );
         }
