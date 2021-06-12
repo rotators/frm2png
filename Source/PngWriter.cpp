@@ -112,9 +112,9 @@ namespace frm2png
         //     throw std::runtime_error( "PngWriter::writeAnimHeader() - Invalid number of frames (" + std::to_string( frames ) + " < 2)" );
 
         png_set_acTL( _png_write, _png_info, frames, loop );
-        png_write_info( _png_write, _png_info );
-
         png_set_first_frame_is_hidden( _png_write, _png_info, preview );
+
+        png_write_info( _png_write, _png_info );
     }
 
     void PngWriter::writeAnimFrame( const PngImage& image, uint32_t offsetX, uint32_t offsetY, uint16_t delayNum, uint16_t delayDen, uint8_t dispose, uint8_t blend )

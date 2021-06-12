@@ -63,6 +63,8 @@ namespace frm2png
     // should be <uint16,uint16> but it's used for temporary values during .frm -> .png offsets conversion
     typedef std::vector<std::pair<int32_t, int32_t>> PngOffsets;
 
+    static constexpr bool firstIsAnim = true;
+
     // converts .frm frames offsets to .png frames offsets
     // finds minimum size required to draw all .png frames
     static PngOffsets ConvertOffsets( const std::vector<Falltergeist::Format::Frm::Frame>& frames, uint32_t& minWidth, uint32_t& minHeight, Logging& logVerbose )
@@ -219,9 +221,6 @@ namespace frm2png
             const std::string pngName  = data.PngPath + data.PngBasename + "_" + std::to_string( dir.Index ) + data.PngExtension;
             uint32_t          pngWidth = 0, pngHeight = 0;
 
-            // TODO support both values
-            static constexpr bool firstIsAnim = true;
-
             logVerbose << "direction " + std::to_string( dir.Index ) << 1;
             PngOffsets offsets = ConvertOffsets( dir.Frames(), pngWidth, pngHeight, logVerbose );
 
@@ -286,9 +285,6 @@ namespace frm2png
         const std::string pngName  = data.PngPath + data.PngBasename + data.PngExtension;
         uint32_t          pngWidth = 0, pngWidthLeft = 0, pngWidthRight = 0, pngHeight = 0, pngRightX = 0;
         constexpr uint8_t pngSpacing = 4;
-
-        // TODO support both values
-        static constexpr bool firstIsAnim = true;
 
         // TODO? fallback to 'anim' generator?
         if( data.Frm.DirectionsSize() != DIR_MAX )
