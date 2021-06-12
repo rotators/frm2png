@@ -185,6 +185,32 @@ namespace frm2png
         png.write( image );
     }
 
+    // based on `legacy` generator
+    // all frames are drawn as single static image; each direction draws frames (aligned to bottom) in its own row, from left to right
+    static void GeneratorStatic( const PngGeneratorData& data, Logging& logVerbose )
+    {
+        uint16_t maxWidth  = data.Frm.MaxFrameWidth();
+        uint16_t maxHeight = data.Frm.MaxFrameHeight();
+
+        PngImage image( maxWidth * data.Frm.FramesPerDirection, maxHeight * data.Frm.DirectionsSize() );
+
+        for( const auto& dir : data.Frm.Directions() )
+        {
+            uint16_t frameIdx = 0;
+            for( const auto& frame : dir.Frames() )
+            {
+                const uint32_t pngX = maxWidth * frameIdx++;
+                const uint32_t pngY = ( maxHeight * dir.Index ) + ( maxHeight - frame.Height );
+
+                DrawFrame( data, frame, image, pngX, pngY );
+            }
+        }
+
+        logVerbose << "write png = " + data.PngPath + data.PngBasename + data.PngExtension + " = " + std::to_string( image.width() ) + "x" + std::to_string( image.height() );
+        PngWriter png( data.PngPath + data.PngBasename + data.PngExtension );
+        png.write( image );
+    }
+
     // create multiple animated .png files (one per direction)
     static void GeneratorAnim( const PngGeneratorData& data, Logging& logVerbose )
     {
@@ -372,6 +398,7 @@ namespace frm2png
     void InitPngGenerators()
     {
         Generator["legacy"]      = &GeneratorLegacy;
+        Generator["static"]      = &GeneratorStatic;
         Generator["anim"]        = &GeneratorAnim;
         Generator["anim-packed"] = &GeneratorAnimPacked;
     }
