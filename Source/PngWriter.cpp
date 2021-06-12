@@ -108,8 +108,8 @@ namespace frm2png
                       PNG_FILTER_TYPE_DEFAULT );
 
         // acTL chunk
-        if( frames < 2 )
-            throw std::runtime_error( "PngWriter::writeAnimHeader() - Invalid number of frames (" + std::to_string( frames ) + " < 2)" );
+        // if( frames < 2 )
+        //     throw std::runtime_error( "PngWriter::writeAnimHeader() - Invalid number of frames (" + std::to_string( frames ) + " < 2)" );
 
         png_set_acTL( _png_write, _png_info, frames, loop );
         png_write_info( _png_write, _png_info );

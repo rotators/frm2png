@@ -219,8 +219,8 @@ namespace frm2png
             const std::string pngName  = data.PngPath + data.PngBasename + "_" + std::to_string( dir.Index ) + data.PngExtension;
             uint32_t          pngWidth = 0, pngHeight = 0;
 
-            // TODO support acTL + fcTL + IDAT variant
-            static constexpr bool firstIsAnim = false;
+            // TODO support both values
+            static constexpr bool firstIsAnim = true;
 
             logVerbose << "direction " + std::to_string( dir.Index ) << 1;
             PngOffsets offsets = ConvertOffsets( dir.Frames(), pngWidth, pngHeight, logVerbose );
@@ -230,6 +230,7 @@ namespace frm2png
 
             png.writeAnimHeader( pngWidth, pngHeight, dir.FramesSize() + ( firstIsAnim ? 0 : 1 ), 0, !firstIsAnim );
 
+            // TODO
             if( !firstIsAnim )
             {
                 // if first image is not supposed to be part of animation, copy of first frame is added and moved to center
@@ -253,14 +254,25 @@ namespace frm2png
             }
 
             // draw .png frames
+            bool first = true;
             for( const auto& frame : dir.Frames() )
             {
                 logVerbose << "draw frame:" + std::to_string( frame.Index ) + " @ " + std::to_string( offsets[frame.Index].first ) + "," + std::to_string( offsets[frame.Index].second ) + " -> " + std::to_string( frame.Width ) + "x" + std::to_string( frame.Height );
 
-                PngImage image( frame.Width, frame.Height );
-                DrawFrame( data, frame, image );
+                if( firstIsAnim && first )
+                {
+                    PngImage image( pngWidth, pngHeight );
+                    DrawFrame( data, frame, image, offsets[frame.Index].first, offsets[frame.Index].second );
+                    png.writeAnimFrame( image, 0, 0, 0, GetDelayDen( data.Frm ), PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
 
-                png.writeAnimFrame( image, offsets[frame.Index].first, offsets[frame.Index].second, 0, GetDelayDen( data.Frm ), PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
+                    first = false;
+                }
+                else
+                {
+                    PngImage image( frame.Width, frame.Height );
+                    DrawFrame( data, frame, image );
+                    png.writeAnimFrame( image, offsets[frame.Index].first, offsets[frame.Index].second, 0, GetDelayDen( data.Frm ), PNG_DISPOSE_OP_BACKGROUND, PNG_BLEND_OP_SOURCE );
+                }
             }
 
             png.writeAnimEnd();
@@ -275,8 +287,8 @@ namespace frm2png
         uint32_t          pngWidth = 0, pngWidthLeft = 0, pngWidthRight = 0, pngHeight = 0, pngRightX = 0;
         constexpr uint8_t pngSpacing = 4;
 
-        // TODO support acTL + fcTL + IDAT variant
-        static constexpr bool firstIsAnim = false;
+        // TODO support both values
+        static constexpr bool firstIsAnim = true;
 
         // TODO? fallback to 'anim' generator?
         if( data.Frm.DirectionsSize() != DIR_MAX )
@@ -324,7 +336,7 @@ namespace frm2png
 
         png.writeAnimHeader( pngWidth, pngHeight, data.Frm.FramesPerDirection + ( firstIsAnim ? 0 : 1 ), 0, !firstIsAnim );
 
-        // TODO defaultImage
+        // TODO
         if( !firstIsAnim )
         {
             PngImage defaultImage( pngWidth, pngHeight );
