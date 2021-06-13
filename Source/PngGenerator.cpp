@@ -141,19 +141,19 @@ namespace frm2png
     // copy pixels from .frm to .png, starting at given position; adjusts RGB
     static void DrawFrame( const PngGeneratorData& data, const Falltergeist::Format::Frm::Frame& frame, PngImage& image, const uint32_t pngX = 0, const uint32_t pngY = 0 )
     {
-        for( uint16_t y = 0, h = frame.Height; y < h; y++ )
+        for( uint16_t x = 0; x < frame.Width; x++ )
         {
-            for( uint16_t x = 0, w = frame.Width; x < w; x++ )
+            for( uint16_t y = 0; y < frame.Height; y++ )
             {
-                const Falltergeist::Format::Pal::Color* color = data.Pal.color( frame.ColorIndex( x, y ) );
-                image.setPixel( pngX + x, pngY + y, color->red() * data.RgbMultiplier, color->green() * data.RgbMultiplier, color->blue() * data.RgbMultiplier, color->alpha() );
+                const Falltergeist::Format::Pal::Color& color = data.Pal.Get( frame.ColorIndex( x, y ) );
+                image.setPixel( pngX + x, pngY + y, color.R, color.G, color.B, color.A );
             }
         }
     }
 
-    static inline uint32_t GetDelayDen( const Falltergeist::Format::Frm::File& frm )
+    static inline uint16_t GetDelayDen( const Falltergeist::Format::Frm::File& frm )
     {
-        return 1000 / ( frm.FramesPerSecond ? frm.FramesPerSecond : 10 );
+        return static_cast<uint16_t>( 1000 / ( frm.FramesPerSecond ? frm.FramesPerSecond : 10 ) );
     }
 
     //

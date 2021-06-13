@@ -10,33 +10,19 @@ namespace Falltergeist
         {
             class Color
             {
-                public:
-                    Color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255);
-                    ~Color();
+            public:
+                uint16_t Index = 0;
 
-                    operator int() const;
-                    operator unsigned int() const;
+                uint8_t R     = 0;
+                uint8_t G     = 0;
+                uint8_t B     = 0;
+                uint8_t A     = 255;
+                bool    NoMultiplier = false;
 
-                    void setRed(uint8_t red);
-                    uint8_t red() const;
-
-                    void setGreen(uint8_t green);
-                    uint8_t green() const;
-
-                    void setBlue(uint8_t blue);
-                    uint8_t blue() const;
-
-                    void setAlpha(uint8_t alpha);
-                    uint8_t alpha() const;
-
-                    void nomod();
-
-                protected:
-                    uint8_t _red;
-                    uint8_t _green;
-                    uint8_t _blue;
-                    uint8_t _alpha;
-                    bool _nomod = false;
+            public:
+                Color() = delete;
+                Color( uint8_t r, uint8_t g, uint8_t b, uint8_t = 255 );
+                ~Color() = default;
             };
         }
     }

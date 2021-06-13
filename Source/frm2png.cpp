@@ -309,7 +309,7 @@ int main( int argc, char** argv )
             logVerbose << "png = path[" + data.PngPath + "] basename[" + data.PngBasename + "] extension[" + data.PngExtension + "]";
 
             // TODO? make rgbMultiplier configurable
-            data.RgbMultiplier = 4;
+            data.Pal.RGBMultiplier( 4 ); // noon
 
             // select and run .png generator
             std::string generator = options.Generator;
