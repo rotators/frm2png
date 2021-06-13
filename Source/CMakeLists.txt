@@ -49,7 +49,7 @@ function( frm2png_target target )
 		compiler_flag( "compile" ${target} -Wextra    COMPILER_FLAG_WEXTRA )
 		compiler_flag( "compile" ${target} -Wpedantic COMPILER_FLAG_WPEDANTIC )
 
-		compiler_flag( "compile" ${target} -Wconversion COMPILER_FLAG_WCONVERSION )
+		#compiler_flag( "compile" ${target} -Wconversion COMPILER_FLAG_WCONVERSION )
 
 		compiler_flag( "link" ${target} -static-libgcc    COMPILER_FLAG_STATIC_LIBGCC )
 		compiler_flag( "link" ${target} -static-libstdc++ COMPILER_FLAG_STATIC_LIBSTDCPP )

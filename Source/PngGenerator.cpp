@@ -146,6 +146,8 @@ namespace frm2png
             for( uint16_t y = 0; y < frame.Height; y++ )
             {
                 const Falltergeist::Format::Pal::Color& color = data.Pal.Get( frame.ColorIndex( x, y ) );
+                if( color.Index >= 229 )
+                    std::printf( "png[%s%s] frame[%u] x[%u] y[%u] magicColorIndex[%u]\n", data.PngBasename.c_str(), data.PngExtension.c_str(), frame.Index, x, y, color.Index );
                 image.setPixel( pngX + x, pngY + y, color.R, color.G, color.B, color.A );
             }
         }

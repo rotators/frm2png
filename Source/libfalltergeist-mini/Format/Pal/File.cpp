@@ -68,6 +68,8 @@ namespace Falltergeist
                         color.R            = 153;
                         color.NoMultiplier = true;
                     }
+                    else if( color.Index == 0 || color.Index == 255 )
+                        color.NoMultiplier = true;
 
                     // SLIME
                     if( color.Index >= 229 && color.Index <= 232 )
